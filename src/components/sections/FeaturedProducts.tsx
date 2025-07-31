@@ -10,15 +10,8 @@ import {
 } from "lucide-react";
 import * as motion from "motion/react-client";
 import Image from "next/image";
-
-interface Product {
-  id: number;
-  name: string;
-  category: string;
-  price: string;
-  originalPrice: string;
-  image: string;
-}
+import { Products } from "@/data/Products";
+import { Product } from "@/constants/Product"; // Importing Product interface
 
 interface FeaturedProductsProps {
   className?: string;
@@ -30,54 +23,8 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
   const [currentSlide, setCurrentSlide] = useState(0);
   const [hoveredProduct, setHoveredProduct] = useState<number | null>(null);
 
-  // Sample products data
-  const products: Product[] = [
-    {
-      id: 1,
-      name: "Commercial Treadmill Pro X1",
-      category: "Cardio Equipment",
-      price: "$3,299",
-      originalPrice: "$4,199",
-      image:
-        "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
-    },
-    {
-      id: 2,
-      name: "Olympic Weight Set - 300lbs",
-      category: "Free Weights",
-      price: "$899",
-      originalPrice: "$1,199",
-      image:
-        "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&h=300&fit=crop",
-    },
-    {
-      id: 3,
-      name: "Multi-Station Gym System",
-      category: "Strength Training",
-      price: "$2,799",
-      originalPrice: "$3,499",
-      image:
-        "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop",
-    },
-    {
-      id: 4,
-      name: "Commercial Rowing Machine",
-      category: "Cardio Equipment",
-      price: "$1,899",
-      originalPrice: "$2,299",
-      image:
-        "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
-    },
-    {
-      id: 5,
-      name: "Adjustable Dumbbell Set",
-      category: "Free Weights",
-      price: "$599",
-      originalPrice: "$799",
-      image:
-        "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&h=300&fit=crop",
-    },
-  ];
+  // products data
+  const products: Product[] = Products;
 
   const itemsPerView = 3;
   const maxSlide = Math.max(0, products.length - itemsPerView);
@@ -226,25 +173,27 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   >
                     {/* Product Image */}
-                    <div className="relative mb-6 overflow-hidden rounded-tr-xl rounded-tl-xl">
-                      <Image
-                        src={product.image}
-                        alt={product.name}
-                        width={200}
-                        height={200}
-                        className="w-full h-72 object-cover"
-                      />
+                    <Link href={`/product/${product.id}`}>
+                      <div className="relative mb-6 overflow-hidden rounded-tr-xl rounded-tl-xl">
+                        <Image
+                          src={product.image}
+                          alt={product.name}
+                          width={200}
+                          height={200}
+                          className="w-full h-72 object-cover"
+                        />
 
-                      {/* Hover Actions */}
-                      <motion.div
-                        className="absolute inset-0 bg-black/40 flex items-center justify-center space-x-4"
-                        initial={{ opacity: 0 }}
-                        animate={{
-                          opacity: hoveredProduct === product.id ? 1 : 0,
-                        }}
-                        transition={{ duration: 0.2 }}
-                      ></motion.div>
-                    </div>
+                        {/* Hover Actions */}
+                        <motion.div
+                          className="absolute inset-0 bg-black/40 flex items-center justify-center space-x-4"
+                          initial={{ opacity: 0 }}
+                          animate={{
+                            opacity: hoveredProduct === product.id ? 1 : 0,
+                          }}
+                          transition={{ duration: 0.2 }}
+                        ></motion.div>
+                      </div>
+                    </Link>
 
                     {/* Product Info */}
                     <div className="space-y-4 p-4">

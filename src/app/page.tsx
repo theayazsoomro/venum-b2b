@@ -1,3 +1,4 @@
+import SearchByCollection from "@/components/sections/Collections";
 import FeaturedProducts from "@/components/sections/FeaturedProducts";
 import HeroSection from "@/components/sections/Hero";
 
@@ -6,6 +7,7 @@ export default function Home() {
     <div className="">
       <HeroSection />
       <FeaturedProducts />
+      <SearchByCollection />
     </div>
   );
 }
