@@ -12,7 +12,7 @@ const Navbar = () => {
     <header className="fixed top-0 w-full z-50">
       <nav className="bg-black/20 backdrop-blur-lg border-b border-white/30 shadow-md py-3 md:px-18">
         <div className="mx-auto flex items-center justify-between">
-          <div className="text-xl font-bold text-white">Venum B2B</div>
+          <div className="text-xl font-bold text-white"><Link href={"/"} >Venum B2B</Link></div>
 
           <div className="md:hidden">
             <button
@@ -34,7 +34,7 @@ const Navbar = () => {
               <Link href="/my-items">My Items</Link>
             </li>
             <li>
-              <Link href="/blogs">Blogs</Link>
+              <Link href="/blog">Blogs</Link>
             </li>
             <li>
               <Link href="/about">About Us</Link>
