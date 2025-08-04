@@ -14,12 +14,11 @@ import { Products } from "@/data/Products";
 import { Product } from "@/constants/Product"; // Importing Product interface
 
 interface FeaturedProductsProps {
+  title: string;
   className?: string;
 }
 
-const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
-  className = "",
-}) => {
+function FeaturedProducts({ title = "Featured Products", className = "" }: FeaturedProductsProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [hoveredProduct, setHoveredProduct] = useState<number | null>(null);
 
@@ -120,7 +119,7 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
             className="text-2xl lg:text-4xl font-bold text-slate-800 mb-6"
             variants={itemVariants}
           >
-            Featured Products
+            {title}
           </motion.h2>
         </motion.div>
 
@@ -174,7 +173,7 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
                   >
                     {/* Product Image */}
                     <Link href={`/product/${product.id}`}>
-                      <div className="relative mb-6 overflow-hidden rounded-tr-xl rounded-tl-xl">
+                      <div className="relative mb-1 overflow-hidden rounded-tr-xl rounded-tl-xl">
                         <Image
                           src={product.image}
                           alt={product.name}

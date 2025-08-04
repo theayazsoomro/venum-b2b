@@ -6,8 +6,6 @@ import {
   Mail,
   MapPin,
   Phone,
-  ArrowUp,
-  FileText,
   Shield,
   Users,
   Award,
@@ -47,10 +45,6 @@ const Footer = () => {
       color: "#2563eb",
       transition: { duration: 0.2 },
     },
-  };
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -105,9 +99,9 @@ const Footer = () => {
                 Venum B2B
               </motion.h2>
               <p className="text-gray-400 leading-relaxed max-w-md">
-                Empowering businesses with innovative technology solutions,
-                strategic consulting, and enterprise-grade services to drive
-                growth and operational excellence.
+                Scale your fitness business with our comprehensive wholesale
+                marketplace. Premium equipment, competitive pricing, and
+                seamless procurement for gyms of all sizes.
               </p>
 
               {/* Trust indicators */}
@@ -154,11 +148,13 @@ const Footer = () => {
               <h3 className="text-lg font-semibold text-white">Solutions</h3>
               <div className="space-y-3">
                 {[
-                  "Enterprise Software",
-                  "Cloud Migration",
-                  "Data Analytics",
-                  "AI & Automation",
-                  "Cybersecurity",
+                  "Boxing Equipment",
+                  "Martial Arts Gear",
+                  "Fitness Accessories",
+                  "Wholesale Pricing",
+                  "Gym Equipment",
+                  "Bulk Orders",
+                  "Custom Branding",
                 ].map((solution, index) => (
                   <motion.a
                     key={index}
@@ -177,11 +173,12 @@ const Footer = () => {
               <h3 className="text-lg font-semibold text-white">Company</h3>
               <div className="space-y-3">
                 {[
+                  "Home",
+                  "Services",
+                  "My Items",
+                  "Blogs",
                   "About Us",
-                  "Leadership",
-                  "Careers",
-                  "Case Studies",
-                  "Partners",
+                  "Contact Us",
                 ].map((item, index) => (
                   <motion.a
                     key={index}
@@ -199,13 +196,7 @@ const Footer = () => {
             <motion.div variants={itemVariants} className="space-y-6">
               <h3 className="text-lg font-semibold text-white">Resources</h3>
               <div className="space-y-3">
-                {[
-                  "Documentation",
-                  "API Reference",
-                  "Support Center",
-                  "Training",
-                  "Webinars",
-                ].map((resource, index) => (
+                {["Help Center", "FAQs"].map((resource, index) => (
                   <motion.a
                     key={index}
                     href="#"
@@ -289,16 +280,6 @@ const Footer = () => {
                   </motion.a>
                 </div>
               </div>
-
-              {/* <motion.button
-                onClick={scrollToTop}
-                className="w-10 h-10 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center text-white transition-colors"
-                whileHover={{ scale: 1.1, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                aria-label="Scroll to top"
-              >
-                <ArrowUp size={18} />
-              </motion.button> */}
             </div>
           </div>
         </motion.div>
