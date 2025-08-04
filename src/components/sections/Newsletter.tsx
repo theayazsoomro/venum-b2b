@@ -116,7 +116,7 @@ const Newsletter: React.FC = () => {
               Welcome Aboard! 🎉
             </h2>
             <p className="text-xl text-gray-600 mb-6">
-              You're now part of our exclusive B2B community. Get ready for
+              You&apos;re now part of our exclusive B2B community. Get ready for
               valuable insights, exclusive deals, and the latest gym industry
               updates delivered straight to your inbox.
             </p>
@@ -246,7 +246,7 @@ const Newsletter: React.FC = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     <div className="absolute bottom-4 left-4 text-white">
-                      <p className="font-bold text-sm">This Week's Focus</p>
+                      <p className="font-bold text-sm">This Week&apos;s Focus</p>
                       <p className="text-xs opacity-90">
                         Equipment Trends 2024
                       </p>

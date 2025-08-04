@@ -77,7 +77,7 @@ const AboutSection = () => {
                 viewport={{ once: true }}
                 transition={{ duration: 0.8, delay: 0.2 }}
               >
-                We're revolutionizing corporate wellness through innovative
+                We&apos;re revolutionizing corporate wellness through innovative
                 fitness solutions. As industry pioneers, we design and implement
                 comprehensive gym facilities that transform workplace culture,
                 boost employee satisfaction, and drive measurable business

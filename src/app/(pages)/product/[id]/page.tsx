@@ -2,28 +2,18 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ChevronLeft,
   ChevronRight,
-  Star,
   Heart,
   Share2,
   ShoppingCart,
-  Truck,
-  Shield,
-  Award,
-  Check,
   Plus,
   Minus,
-  Download,
-  Play,
-  Eye,
-  Zap,
-  Users,
-  TrendingUp,
-  MessageCircle,
 } from "lucide-react";
-import * as motion from "motion/react-client";
+// import * as motion from "motion/react-client";
+import { Variants, motion } from "framer-motion";
 
 interface ProductImage {
   id: number;
@@ -126,7 +116,7 @@ const SingleProductPage: React.FC<SingleProductPageProps> = ({
   };
 
   // Animation variants
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -137,7 +127,7 @@ const SingleProductPage: React.FC<SingleProductPageProps> = ({
     },
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 50, opacity: 0 },
     visible: {
       y: 0,
@@ -148,15 +138,15 @@ const SingleProductPage: React.FC<SingleProductPageProps> = ({
         damping: 15,
       },
     },
-  } as const;
+  };
 
-  const fadeInUp = {
+  const fadeInUp: Variants = {
     hidden: { y: 30, opacity: 0 },
     visible: {
       y: 0,
       opacity: 1,
       transition: {
-        type: "spring" as "spring",
+        type: "spring",
         stiffness: 100,
         damping: 15,
       },
@@ -220,7 +210,9 @@ const SingleProductPage: React.FC<SingleProductPageProps> = ({
             {/* Main Image */}
             <div className="relative bg-white/60 backdrop-blur-sm border border-white/40 rounded-2xl overflow-hidden shadow-xl">
               <div className="aspect-square relative">
-                <img
+                <Image
+                  width={400}
+                  height={400}
                   src={product.images[currentImageIndex].url}
                   alt={product.images[currentImageIndex].alt}
                   className="w-full h-full object-cover"
@@ -282,7 +274,9 @@ const SingleProductPage: React.FC<SingleProductPageProps> = ({
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <img
+                  <Image
+                    width={400}
+                    height={400}
                     src={image.url}
                     alt={image.alt}
                     className="w-full h-full object-cover"
