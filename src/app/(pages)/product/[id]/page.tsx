@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, use } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -12,7 +12,6 @@ import {
   Plus,
   Minus,
 } from "lucide-react";
-// import * as motion from "motion/react-client";
 import { Variants, motion } from "framer-motion";
 
 interface ProductImage {
@@ -26,13 +25,14 @@ interface ProductSpec {
   value: string;
 }
 
-interface SingleProductPageProps {
-  className?: string;
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
 }
 
-const SingleProductPage: React.FC<SingleProductPageProps> = ({
-  className = "",
-}) => {
+export default function SingleProductPage({ params }: PageProps) {
+  const { id } = use(params);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedTab, setSelectedTab] = useState("description");
@@ -40,7 +40,7 @@ const SingleProductPage: React.FC<SingleProductPageProps> = ({
 
   // Sample product data
   const product = {
-    id: 1,
+    id: id,
     name: "Commercial Treadmill Pro X1",
     category: "Cardio Equipment",
     brand: "FitnessPro",
@@ -155,7 +155,7 @@ const SingleProductPage: React.FC<SingleProductPageProps> = ({
 
   return (
     <motion.div
-      className={`min-h-screen bg-gradient-to-br from-slate-50 via-white to-gray-50 ${className}`}
+      className={`min-h-screen bg-gradient-to-br from-slate-50 via-white to-gray-50`}
       initial="hidden"
       animate="visible"
       variants={containerVariants}
@@ -496,5 +496,4 @@ const SingleProductPage: React.FC<SingleProductPageProps> = ({
       </div>
     </motion.div>
   );
-};
-export default SingleProductPage;
+}
