@@ -11,19 +11,35 @@ import {
 import * as motion from "motion/react-client";
 import Image from "next/image";
 import { Products } from "@/data/Products";
-import { Product } from "@/constants/Product"; // Importing Product interface
+import { Product } from "@/constants/Product";
+import { useCart } from "@/context/CartContext";
 
 interface FeaturedProductsProps {
   title: string;
   className?: string;
 }
 
-function FeaturedProducts({ title = "Featured Products", className = "" }: FeaturedProductsProps) {
+function FeaturedProducts({
+  title = "Featured Products",
+  className = "",
+}: FeaturedProductsProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [hoveredProduct, setHoveredProduct] = useState<number | null>(null);
+  const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
+  // const [product, setProduct] = useState<Product | null>(null);
+  const { addItem } = useCart();
 
   // products data
   const products: Product[] = Products;
+
+  // Function to handle adding product to cart
+  const handleAddToCart = (product: Product) => {
+    addItem({
+      id: product._id,
+      name: product.name,
+      price: product.price,
+      imageUrl: product.image,
+    });
+  };
 
   const itemsPerView = 3;
   const maxSlide = Math.max(0, products.length - itemsPerView);
@@ -157,10 +173,10 @@ function FeaturedProducts({ title = "Featured Products", className = "" }: Featu
             >
               {products.map((product, index) => (
                 <motion.div
-                  key={product.id}
+                  key={product._id}
                   className="flex-shrink-0 w-full sm:w-1/2 lg:w-1/4"
                   variants={cardVariants}
-                  onMouseEnter={() => setHoveredProduct(product.id)}
+                  onMouseEnter={() => setHoveredProduct(product._id)}
                   onMouseLeave={() => setHoveredProduct(null)}
                 >
                   <motion.div
@@ -172,7 +188,7 @@ function FeaturedProducts({ title = "Featured Products", className = "" }: Featu
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   >
                     {/* Product Image */}
-                    <Link href={`/product/${product.id}`}>
+                    <Link href={`/product/${product._id}`}>
                       <div className="relative mb-1 overflow-hidden rounded-tr-xl rounded-tl-xl">
                         <Image
                           src={product.image}
@@ -187,7 +203,7 @@ function FeaturedProducts({ title = "Featured Products", className = "" }: Featu
                           className="absolute inset-0 bg-black/40 flex items-center justify-center space-x-4"
                           initial={{ opacity: 0 }}
                           animate={{
-                            opacity: hoveredProduct === product.id ? 1 : 0,
+                            opacity: hoveredProduct === product._id ? 1 : 0,
                           }}
                           transition={{ duration: 0.2 }}
                         ></motion.div>
@@ -225,9 +241,10 @@ function FeaturedProducts({ title = "Featured Products", className = "" }: Featu
                           className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-200"
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
+                          onClick={() => handleAddToCart(product)}
                         >
                           <ShoppingCart className="w-4 h-4" />
-                          <Link href="/contact">Add to Quote</Link>
+                          Add to Quote
                         </motion.button>
                       </div>
                     </div>
@@ -280,6 +297,6 @@ function FeaturedProducts({ title = "Featured Products", className = "" }: Featu
       </div>
     </motion.section>
   );
-};
+}
 
 export default FeaturedProducts;
