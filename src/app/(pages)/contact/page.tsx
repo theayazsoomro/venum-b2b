@@ -33,8 +33,7 @@ interface EditingItem {
 }
 
 const ContactPage = () => {
-  const { items, addItem, removeItem, updateQuantity, clearCart, total } =
-    useCart();
+  const { items, removeItem, updateQuantity, clearCart, total } = useCart();
   const [userInfo, setUserInfo] = useState<UserInfo>({
     id: "1",
     name: "John Doe",
@@ -56,12 +55,6 @@ const ContactPage = () => {
 
   const [isEditingUser, setIsEditingUser] = useState(true);
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
-  const [showAddItemForm, setShowAddItemForm] = useState(false);
-  const [newItem, setNewItem] = useState({
-    name: "",
-    price: 0,
-    imageUrl: "/placeholder-product.jpg",
-  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
 
@@ -84,7 +77,7 @@ const ContactPage = () => {
     setIsEditingUser(false);
   };
 
-  const handleEditItem = (item: any) => {
+  const handleEditItem = (item: EditingItem) => {
     setEditingItem({
       id: item.id,
       name: item.name,
@@ -95,23 +88,8 @@ const ContactPage = () => {
 
   const handleUpdateItem = () => {
     if (editingItem) {
-      // Update item (in a real app, you'd also update name and price via API)
       updateQuantity(editingItem.id, editingItem.quantity);
       setEditingItem(null);
-    }
-  };
-
-  const handleAddNewItem = () => {
-    if (newItem.name && newItem.price > 0) {
-      const item = {
-        id: Date.now().toString(),
-        name: newItem.name,
-        price: newItem.price,
-        imageUrl: newItem.imageUrl,
-      };
-      addItem(item);
-      setNewItem({ name: "", price: 0, imageUrl: "/placeholder-product.jpg" });
-      setShowAddItemForm(false);
     }
   };
 
@@ -437,7 +415,11 @@ const ContactPage = () => {
                       onChange={(e) =>
                         setContactForm({
                           ...contactForm,
-                          category: e.target.value as any,
+                          category: e.target.value as
+                            | "general"
+                            | "support"
+                            | "sales"
+                            | "partnership",
                         })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -457,7 +439,7 @@ const ContactPage = () => {
                       onChange={(e) =>
                         setContactForm({
                           ...contactForm,
-                          priority: e.target.value as any,
+                          priority: e.target.value as "low" | "medium" | "high",
                         })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -562,14 +544,6 @@ const ContactPage = () => {
                 </div>
 
                 <div className="flex space-x-2 mb-4">
-                  {/* <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowAddItemForm(true)}
-                    className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700"
-                  >
-                    Add Item
-                  </motion.button> */}
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -716,6 +690,7 @@ const ContactPage = () => {
                       setEditingItem({ ...editingItem, name: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    disabled={true}
                   />
                 </div>
                 <div>
@@ -733,6 +708,7 @@ const ContactPage = () => {
                       })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    disabled={true}
                   />
                 </div>
                 <div>

@@ -3,7 +3,6 @@
 import { motion, Variants } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { Blog } from "@/types/blogs";
 
 export default function BlogPage() {
   // Sample blog data

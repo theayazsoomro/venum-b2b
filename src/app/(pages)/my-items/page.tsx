@@ -53,7 +53,7 @@ const MyItemsPage = () => {
       };
 
       console.log("Form submitted:", formData);
-      setSubmitMessage("Thank you! We'll get back to you within 24 hours.");
+      setSubmitMessage("Thank you! We&apos;ll get back to you within 24 hours.");
       setContactForm({
         name: "",
         email: "",
@@ -135,7 +135,7 @@ const MyItemsPage = () => {
             No Items Yet
           </h1>
           <p className="text-gray-600 mb-8">
-            You haven't added any products to your list.
+            You haven&apos;t added any products to your list.
           </p>
           <motion.button
             whileHover={{ scale: 1.05 }}
