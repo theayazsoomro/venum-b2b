@@ -1,9 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import Image from "next/image";
+import {
+  Code,
+  BriefcaseBusiness,
+  Factory,
+  Truck,
+  ChartNoAxesCombined,
+  Box,
+} from "lucide-react";
+import Link from "next/link";
 
 interface Service {
   id: string;
@@ -22,7 +31,7 @@ interface Service {
     | "manufacturing"
     | "logistics"
     | "custom";
-  icon: string;
+  icon: string | React.ReactNode;
   popular?: boolean;
 }
 
@@ -39,10 +48,10 @@ interface CustomProductRequest {
     phone: string;
   };
   additionalNotes: string;
+  productImages: string[]; // Added images array
 }
 
 const ServicesPage = () => {
-  const { addItem } = useCart();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [showCustomForm, setShowCustomForm] = useState(false);
   const [customRequest, setCustomRequest] = useState<CustomProductRequest>({
@@ -58,9 +67,15 @@ const ServicesPage = () => {
       phone: "",
     },
     additionalNotes: "",
+    productImages: [], // Initialize empty images array
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
+
+  // Image upload states
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<number[]>([]);
 
   const services: Service[] = [
     {
@@ -78,7 +93,7 @@ const ServicesPage = () => {
       pricing: { startingPrice: 150, unit: "per hour" },
       deliveryTime: "1-2 weeks",
       category: "consultation",
-      icon: "💼",
+      icon: <BriefcaseBusiness className="w-6 h-6" />,
       popular: true,
     },
     {
@@ -96,7 +111,7 @@ const ServicesPage = () => {
       pricing: { startingPrice: 5000, unit: "per project", minOrder: 1 },
       deliveryTime: "4-12 weeks",
       category: "development",
-      icon: "💻",
+      icon: <Code className="w-6 h-6" />,
     },
     {
       id: "3",
@@ -113,7 +128,7 @@ const ServicesPage = () => {
       pricing: { startingPrice: 2, unit: "per unit", minOrder: 500 },
       deliveryTime: "6-16 weeks",
       category: "manufacturing",
-      icon: "🏭",
+      icon: <Factory className="w-6 h-6" />,
     },
     {
       id: "4",
@@ -130,7 +145,7 @@ const ServicesPage = () => {
       pricing: { startingPrice: 50, unit: "per shipment" },
       deliveryTime: "24-72 hours",
       category: "logistics",
-      icon: "🚚",
+      icon: <Truck className="w-6 h-6" />,
     },
     {
       id: "5",
@@ -147,7 +162,7 @@ const ServicesPage = () => {
       pricing: { startingPrice: 1500, unit: "per month" },
       deliveryTime: "2-4 weeks setup",
       category: "consultation",
-      icon: "📈",
+      icon: <ChartNoAxesCombined className="w-6 h-6" />,
     },
     {
       id: "6",
@@ -164,18 +179,34 @@ const ServicesPage = () => {
       pricing: { startingPrice: 1.5, unit: "per unit", minOrder: 1000 },
       deliveryTime: "8-20 weeks",
       category: "custom",
-      icon: "📦",
+      icon: <Box className="w-6 h-6" />,
       popular: true,
     },
   ];
 
   const categories = [
     { id: "all", name: "All Services", icon: "🔧" },
-    { id: "consultation", name: "Consultation", icon: "💼" },
-    { id: "development", name: "Development", icon: "💻" },
-    { id: "manufacturing", name: "Manufacturing", icon: "🏭" },
-    { id: "logistics", name: "Logistics", icon: "🚚" },
-    { id: "custom", name: "Custom Products", icon: "📦" },
+    {
+      id: "consultation",
+      name: "Consultation",
+      icon: <BriefcaseBusiness className="w-6 h-6" />,
+    },
+    {
+      id: "development",
+      name: "Development",
+      icon: <Code className="w-6 h-6" />,
+    },
+    {
+      id: "manufacturing",
+      name: "Manufacturing",
+      icon: <Factory className="w-6 h-6" />,
+    },
+    { id: "logistics", name: "Logistics", icon: <Truck className="w-6 h-6" /> },
+    {
+      id: "custom",
+      name: "Custom Products",
+      icon: <Box className="w-6 h-6" />,
+    },
   ];
 
   const filteredServices =
@@ -183,14 +214,84 @@ const ServicesPage = () => {
       ? services
       : services.filter((service) => service.category === selectedCategory);
 
-  const handleServiceInquiry = (service: Service) => {
-    const serviceItem = {
-      id: `service-${service.id}`,
-      name: service.title,
-      price: service.pricing.startingPrice,
-      imageUrl: "/placeholder-service.jpg",
-    };
-    addItem(serviceItem);
+  // Convert file to base64 for storage
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  // Handle file selection with validation
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = Array.from(event.target.files || []);
+    const currentImageCount =
+      customRequest.productImages.length + selectedFiles.length;
+    const remainingSlots = 5 - currentImageCount;
+
+    if (files.length > remainingSlots) {
+      setSubmitMessage(
+        `You can only upload ${remainingSlots} more image(s). Maximum 5 images allowed.`
+      );
+      setTimeout(() => setSubmitMessage(""), 3000);
+      return;
+    }
+
+    const validFiles = files.filter((file) => {
+      const isValidType = file.type.startsWith("image/");
+      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+
+      if (!isValidType) {
+        setSubmitMessage(`${file.name} is not a valid image file.`);
+        setTimeout(() => setSubmitMessage(""), 3000);
+      }
+      if (!isValidSize) {
+        setSubmitMessage(`${file.name} is too large. Maximum size is 5MB.`);
+        setTimeout(() => setSubmitMessage(""), 3000);
+      }
+
+      return isValidType && isValidSize;
+    });
+
+    if (validFiles.length === 0) return;
+
+    setSelectedFiles((prev) => [...prev, ...validFiles]);
+
+    // Convert files to base64 and add to form data
+    try {
+      const base64Images = await Promise.all(
+        validFiles.map((file) => fileToBase64(file))
+      );
+
+      setCustomRequest((prev) => ({
+        ...prev,
+        productImages: [...prev.productImages, ...base64Images],
+      }));
+
+      // Create previews
+      setImagePreviews((prev) => [...prev, ...base64Images]);
+    } catch (error) {
+      console.error("Error processing images:", error);
+      setSubmitMessage("Error processing images. Please try again.");
+      setTimeout(() => setSubmitMessage(""), 3000);
+    }
+
+    // Clear input
+    event.target.value = "";
+  };
+
+  // Remove selected image
+  const removeImage = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+    setCustomRequest((prev) => ({
+      ...prev,
+      productImages: prev.productImages.filter((_, i) => i !== index),
+    }));
   };
 
   const handleCustomSubmit = async (e: React.FormEvent) => {
@@ -220,17 +321,48 @@ const ServicesPage = () => {
           phone: "",
         },
         additionalNotes: "",
+        productImages: [],
       });
+
+      // Reset image states
+      setSelectedFiles([]);
+      setImagePreviews([]);
+      setUploadProgress([]);
 
       setTimeout(() => {
         setShowCustomForm(false);
         setSubmitMessage("");
       }, 4000);
     } catch (error) {
+      console.error("Error submitting custom request:", error);
       setSubmitMessage("Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Reset form function
+  const resetCustomForm = () => {
+    setCustomRequest({
+      productType: "",
+      quantity: 1,
+      specifications: "",
+      budget: "",
+      timeline: "",
+      contactInfo: {
+        name: "",
+        email: "",
+        company: "",
+        phone: "",
+      },
+      additionalNotes: "",
+      productImages: [],
+    });
+    setSelectedFiles([]);
+    setImagePreviews([]);
+    setUploadProgress([]);
+    setShowCustomForm(false);
+    setSubmitMessage("");
   };
 
   const containerVariants: Variants = {
@@ -239,18 +371,6 @@ const ServicesPage = () => {
       opacity: 1,
       transition: {
         staggerChildren: 0.1,
-      },
-    },
-  };
-
-  const itemVariants: Variants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 100,
       },
     },
   };
@@ -325,7 +445,7 @@ const ServicesPage = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setSelectedCategory(category.id)}
-                className={`px-6 py-3 rounded-full font-medium transition-all duration-200 ${
+                className={`px-6 py-3 flex rounded-full font-medium transition-all duration-200 ${
                   selectedCategory === category.id
                     ? "bg-blue-600 text-white shadow-lg"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -356,15 +476,15 @@ const ServicesPage = () => {
                   initial="rest"
                   whileHover="hover"
                   layout
-                  className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden relative"
+                  className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden relative flex flex-col h-full"
                 >
                   {service.popular && (
-                    <div className="absolute top-4 right-4 bg-gradient-to-r from-orange-400 to-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                    <div className="absolute top-4 right-4 bg-gradient-to-r from-orange-400 to-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold z-10">
                       Popular
                     </div>
                   )}
 
-                  <div className="p-8">
+                  <div className="p-8 flex flex-col flex-1">
                     <div className="flex items-center mb-4">
                       <span className="text-4xl mr-4">{service.icon}</span>
                       <div>
@@ -379,7 +499,7 @@ const ServicesPage = () => {
 
                     <p className="text-gray-600 mb-6">{service.description}</p>
 
-                    <div className="space-y-4 mb-6">
+                    <div className="space-y-4 mb-6 flex-1">
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-2">
                           Key Features:
@@ -422,7 +542,8 @@ const ServicesPage = () => {
                       </div>
                     </div>
 
-                    <div className="border-t pt-4">
+                    {/* This section will be pushed to the bottom */}
+                    <div className="border-t pt-4 mt-auto">
                       <div className="flex justify-between items-center mb-4">
                         <div>
                           <span className="text-3xl font-bold text-blue-600">
@@ -438,21 +559,19 @@ const ServicesPage = () => {
                       </div>
 
                       <div className="flex space-x-2">
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => handleServiceInquiry(service)}
-                          className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                        <Link
+                          href={`/services/${service.id}`}
+                          className="text-center flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                         >
-                          Add to Inquiry
-                        </motion.button>
-                        <motion.button
+                          Reach us
+                        </Link>
+                        {/* <motion.button
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                           className="px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                         >
                           Details
-                        </motion.button>
+                        </motion.button> */}
                       </div>
                     </div>
                   </div>
@@ -691,8 +810,8 @@ const ServicesPage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-            onClick={() => setShowCustomForm(false)}
+            className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center p-4 z-50"
+            onClick={resetCustomForm}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -714,7 +833,7 @@ const ServicesPage = () => {
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => setShowCustomForm(false)}
+                    onClick={resetCustomForm}
                     className="text-gray-400 hover:text-gray-600 text-2xl"
                   >
                     ✕
@@ -794,6 +913,90 @@ const ServicesPage = () => {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Detailed specifications: dimensions, materials, colors, features, branding requirements, etc."
                     />
+                  </div>
+
+                  {/* Product Images Upload Section */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Product Reference Images (Max 5 images, 5MB each)
+                    </label>
+                    <p className="text-sm text-gray-500 mb-3">
+                      Upload images of similar products, sketches, or design
+                      concepts to help us understand your requirements better.
+                    </p>
+
+                    {/* Upload Area */}
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        id="productImageUpload"
+                        disabled={customRequest.productImages.length >= 5}
+                      />
+                      <label
+                        htmlFor="productImageUpload"
+                        className={`cursor-pointer ${
+                          customRequest.productImages.length >= 5
+                            ? "cursor-not-allowed opacity-50"
+                            : ""
+                        }`}
+                      >
+                        <div className="text-gray-400 mb-2">
+                          <svg
+                            className="mx-auto h-12 w-12"
+                            stroke="currentColor"
+                            fill="none"
+                            viewBox="0 0 48 48"
+                          >
+                            <path
+                              d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {customRequest.productImages.length >= 5
+                            ? "Maximum 5 images reached"
+                            : "Click to upload images or drag and drop"}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          PNG, JPG, GIF up to 5MB (
+                          {customRequest.productImages.length}/5)
+                        </p>
+                      </label>
+                    </div>
+
+                    {/* Image Preview Grid */}
+                    {imagePreviews.length > 0 && (
+                      <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-4">
+                        {imagePreviews.map((preview, index) => (
+                          <div key={index} className="relative group">
+                            <Image
+                              src={preview}
+                              alt={`Product reference ${index + 1}`}
+                              width={120}
+                              height={120}
+                              className="h-24 w-full object-cover rounded-lg border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(index)}
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                            >
+                              ✕
+                            </button>
+                            <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
+                              {index + 1}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -965,7 +1168,7 @@ const ServicesPage = () => {
                       type="button"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => setShowCustomForm(false)}
+                      onClick={resetCustomForm}
                       className="px-8 py-3 text-gray-600 hover:text-gray-800 font-medium"
                     >
                       Cancel

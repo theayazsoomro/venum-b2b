@@ -5,6 +5,7 @@ import { motion, AnimatePresence, Variants } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import Image from "next/image";
 import Link from "next/link";
+import ProductRadarChart from "@/components/ui/RadarChart";
 
 interface UserInfo {
   id: string;
@@ -658,6 +659,9 @@ const ContactPage = () => {
             </motion.div>
           </div>
         </div>
+        <div className="charts my-8">
+              <ProductRadarChart />
+            </div>
       </div>
 
       {/* Edit Item Modal */}

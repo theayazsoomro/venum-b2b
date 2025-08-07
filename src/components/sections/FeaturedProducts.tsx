@@ -277,7 +277,7 @@ function FeaturedProducts({
             variants={itemVariants}
           >
             <Link
-              href="/products"
+              href="/product"
               className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-semibold text-lg "
             >
               <span>View All Products</span>
@@ -289,8 +289,10 @@ function FeaturedProducts({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <TrendingUp className="mr-2 w-5 h-5" />
-              Get Bulk Quote
+              <Link href="/services" className="flex items-center">
+                <TrendingUp className="mr-2 w-5 h-5" />
+                Get Bulk Quote
+              </Link>
             </motion.button>
           </motion.div>
         </motion.div>

@@ -142,7 +142,7 @@ const MyItemsPage = () => {
             whileTap={{ scale: 0.95 }}
             className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
           >
-            <Link href="/">Browse Products</Link>
+            <Link href="/product">Browse Products</Link>
           </motion.button>
         </motion.div>
       </div>
