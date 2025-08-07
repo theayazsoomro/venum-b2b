@@ -1,14 +1,25 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import axios from "axios";
 
-interface LoginError {
+const Backend_Url = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+interface LoginResponse {
+  success: boolean;
+  token: string;
+  user: {
+    email: string;
+    name: string;
+    role: string;
+    _id: string;
+  };
   message: string;
 }
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("admin@example.com");
+  const [password, setPassword] = useState("test123");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
 
@@ -22,6 +33,21 @@ export default function LoginPage() {
       setError(decodeURIComponent(urlError));
     }
   }, [searchParams]);
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+
+    if (token) {
+      // Redirect based on role
+      if (role === "admin") {
+        router.push("/dashboard");
+      } else {
+        router.push("/");
+      }
+    }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,35 +68,57 @@ export default function LoginPage() {
     }
 
     try {
-      // Get user role from localStorage or context
-      const role = localStorage.getItem("role") || "user";
+      // Make login API call - CORRECTED (removed auth headers)
+      const response = await axios.post<LoginResponse>(`${Backend_Url}/auth/login`, {
+        email,
+        password,
+      });
 
-      // Redirect based on role
-      if (role === "admin") {
-        router.push("/admin");
-      } else if (role === "user") {
-        router.push("/dashboard");
+      // CORRECTED response handling
+      if (response.data.success) {
+        // Store authentication data
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("role", response.data.user.role);
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+
+        // Redirect based on role
+        if (response.data.user.role === "admin") {
+          router.push("/dashboard");
+        } else {
+          router.push("/");
+        }
       } else {
-        router.push("/");
+        setError(response.data.message || "Login failed");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed:", error);
-
-      // Better error handling
-      if (error instanceof Error) {
-        setError(error.message);
-      } else if (
-        typeof error === "object" &&
-        error !== null &&
-        "message" in error
-      ) {
-        setError((error as LoginError).message);
+      
+      // Handle different types of errors
+      if (error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else if (error.response?.status === 401) {
+        setError("Invalid email or password");
+      } else if (error.response?.status === 500) {
+        setError("Server error. Please try again later.");
+      } else if (error.code === "NETWORK_ERROR" || !error.response) {
+        setError("Network error. Please check your connection and try again.");
       } else {
-        setError("Login failed. Please try again.");
+        setError("An unexpected error occurred. Please try again.");
       }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Clear error when user starts typing
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    if (error) setError("");
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    if (error) setError("");
   };
 
   return (
@@ -105,7 +153,7 @@ export default function LoginPage() {
                 className="appearance-none relative block w-full py-4 px-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-600 focus:border-blue-600 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="Email address"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={handleEmailChange}
               />
             </div>
             <div className="my-4">
@@ -122,7 +170,7 @@ export default function LoginPage() {
                 className="appearance-none relative block w-full py-4 px-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-600 focus:border-blue-600 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="Password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={handlePasswordChange}
               />
             </div>
           </div>
@@ -131,7 +179,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="group relative w-full flex justify-center py-4 px-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group relative w-full flex justify-center py-4 px-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isLoading ? (
                 <>
