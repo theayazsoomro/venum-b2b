@@ -1,9 +1,9 @@
+import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import morgan from "morgan";
 import path from "path";
-import dotenv from "dotenv";
 
 dotenv.config();
 const app = express();
@@ -13,7 +13,7 @@ import productRoutes from "./routes/productRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 
 // Middleware
-app.use(morgan("combined"));
+app.use(morgan("dev"));
 app.use(
   cors({
     origin: process.env.ALLOWED_ORIGINS?.split(",") || "*",

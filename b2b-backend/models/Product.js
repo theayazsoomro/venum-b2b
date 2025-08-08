@@ -65,9 +65,9 @@ const productSchema = new mongoose.Schema({
 });
 
 // Virtual for imageUrl (backward compatibility)
-productSchema.virtual("imageUrl").get(function () {
-  return this.images && this.images.length > 0 ? this.images[0] : null;
-});
+// productSchema.virtual("imageUrl").get(function () {
+//   return this.images && this.images.length > 0 ? this.images[0] : null;
+// });
 
 // Indexes for better performance
 productSchema.index({ name: "text", description: "text" }); // Text search index
