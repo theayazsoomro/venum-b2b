@@ -3,22 +3,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import Image from "next/image";
+import axios from "axios";
+import { Product, BackendResponse } from "@/types/Products";
 
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  originalPrice?: number;
-  description: string;
-  category: string;
-  images: string[];
-  stock: number;
-  sku: string;
-  status: "active" | "inactive";
-  createdAt: string;
-  updatedAt: string;
-  imageUrl?: string;
-}
+const Backend_Url = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 interface ProductFormData {
   name: string;
@@ -40,13 +28,12 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [sortBy, setSortBy] = useState<
-    "name" | "price" | "stock" | "createdAt"
-  >("createdAt");
+  const [sortBy, setSortBy] = useState<"name" | "price" | "stock" | "createdAt">("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [message, setMessage] = useState({ type: "", content: "" });
 
   // Image upload states
@@ -78,6 +65,23 @@ const AdminDashboard = () => {
     "Textiles",
   ];
 
+  // Get auth token from localStorage
+  const getAuthToken = () => {
+    return localStorage.getItem("token");
+  };
+
+  // Create axios instance with auth header
+  const createAuthAxios = () => {
+    const token = getAuthToken();
+    return axios.create({
+      baseURL: Backend_Url,
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    });
+  };
+
   // Convert file to base64 for storage
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -89,9 +93,7 @@ const AdminDashboard = () => {
   };
 
   // Handle file selection with validation
-  const handleFileSelect = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     const currentImageCount = formData.images.length + selectedFiles.length;
     const remainingSlots = 5 - currentImageCount;
@@ -133,9 +135,7 @@ const AdminDashboard = () => {
 
     // Convert files to base64 and add to form data
     try {
-      const base64Images = await Promise.all(
-        validFiles.map((file) => fileToBase64(file))
-      );
+      const base64Images = await Promise.all(validFiles.map((file) => fileToBase64(file)));
 
       setFormData((prev) => ({
         ...prev,
@@ -167,63 +167,31 @@ const AdminDashboard = () => {
     }));
   };
 
-  // Load products from localStorage on component mount
-  useEffect(() => {
-    const storedProducts = localStorage?.getItem("adminProducts");
-    if (storedProducts) {
-      const parsed = JSON.parse(storedProducts);
-
-      // Migrate old data structure to new structure
-      const migratedProducts = parsed.map((product: Product) => ({
-        ...product,
-        images:
-          product.images ||
-          (product.imageUrl
-            ? [product.imageUrl]
-            : ["/placeholder-product.jpg"]),
-        originalPrice: product.originalPrice || undefined,
-      }));
-
-      setProducts(migratedProducts);
-      setFilteredProducts(migratedProducts);
-      localStorage?.setItem("adminProducts", JSON.stringify(migratedProducts));
-    } else {
-      // Initialize with sample data
-      const sampleProducts: Product[] = [
-        {
-          id: "1",
-          name: "Industrial Printer Pro",
-          price: 2499.99,
-          originalPrice: 2999.99, // Added original price
-          description:
-            "High-performance industrial printer for bulk operations",
-          category: "Electronics",
-          images: ["/placeholder-product.jpg"],
-          stock: 25,
-          sku: "IPP-001",
-          status: "active",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: "2",
-          name: "Hydraulic Press Machine",
-          price: 15999.99,
-          originalPrice: 17999.99, // Added original price
-          description: "Heavy-duty hydraulic press for manufacturing",
-          category: "Machinery",
-          images: ["/placeholder-product.jpg"],
-          stock: 5,
-          sku: "HPM-002",
-          status: "active",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-      setProducts(sampleProducts);
-      setFilteredProducts(sampleProducts);
-      localStorage?.setItem("adminProducts", JSON.stringify(sampleProducts));
+  // Fetch products from backend
+  const fetchProducts = async () => {
+    try {
+      setIsLoadingProducts(true);
+      const response = await axios.get<BackendResponse>(`${Backend_Url}/products`);
+      const productsData = response.data.data.products || [];
+      setProducts(productsData);
+      setFilteredProducts(productsData);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      setMessage({
+        type: "error",
+        content: "Failed to fetch products from server",
+      });
+      setTimeout(() => setMessage({ type: "", content: "" }), 3000);
+      setProducts([]);
+      setFilteredProducts([]);
+    } finally {
+      setIsLoadingProducts(false);
     }
+  };
+
+  // Get products from backend using axios
+  useEffect(() => {
+    fetchProducts();
   }, []);
 
   // Filter and sort products
@@ -240,9 +208,7 @@ const AdminDashboard = () => {
     }
 
     if (categoryFilter !== "all") {
-      filtered = filtered.filter(
-        (product) => product.category === categoryFilter
-      );
+      filtered = filtered.filter((product) => product.category === categoryFilter);
     }
 
     if (statusFilter !== "all") {
@@ -275,9 +241,111 @@ const AdminDashboard = () => {
     setCurrentPage(1);
   }, [products, searchTerm, categoryFilter, statusFilter, sortBy, sortOrder]);
 
-  const saveProducts = (updatedProducts: Product[]) => {
-    setProducts(updatedProducts);
-    localStorage?.setItem("adminProducts", JSON.stringify(updatedProducts));
+  // Create new product via API
+  const createProduct = async (productData: ProductFormData) => {
+    try {
+      const authAxios = createAuthAxios();
+      const response = await authAxios.post("/products", productData);
+      
+      if (response.data.status === "success") {
+        return response.data.data.product;
+      } else {
+        throw new Error(response.data.message || "Failed to create product");
+      }
+    } catch (error: any) {
+      console.error("Error creating product:", error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else if (error.response?.data?.errors) {
+        throw new Error(error.response.data.errors.join(", "));
+      } else {
+        throw new Error("Failed to create product");
+      }
+    }
+  };
+
+  // Update product via API
+  const updateProduct = async (productId: string, productData: ProductFormData) => {
+    try {
+      const authAxios = createAuthAxios();
+      const response = await authAxios.put(`/products/${productId}`, productData);
+      
+      if (response.data.status === "success") {
+        return response.data.data.product;
+      } else {
+        throw new Error(response.data.message || "Failed to update product");
+      }
+    } catch (error: any) {
+      console.error("Error updating product:", error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else if (error.response?.data?.errors) {
+        throw new Error(error.response.data.errors.join(", "));
+      } else {
+        throw new Error("Failed to update product");
+      }
+    }
+  };
+
+  // Delete product via API
+  const deleteProduct = async (productId: string) => {
+    try {
+      const authAxios = createAuthAxios();
+      const response = await authAxios.delete(`/products/${productId}`);
+      
+      if (response.data.status === "success") {
+        return true;
+      } else {
+        throw new Error(response.data.message || "Failed to delete product");
+      }
+    } catch (error: any) {
+      console.error("Error deleting product:", error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else {
+        throw new Error("Failed to delete product");
+      }
+    }
+  };
+
+  // Get single product via API (if needed for detailed view)
+  const getProductById = async (productId: string) => {
+    try {
+      const response = await axios.get(`${Backend_Url}/products/${productId}`);
+      if (response.data.status === "success") {
+        return response.data.data.product;
+      } else {
+        throw new Error(response.data.message || "Failed to fetch product");
+      }
+    } catch (error: any) {
+      console.error("Error fetching product:", error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else {
+        throw new Error("Failed to fetch product");
+      }
+    }
+  };
+
+  // Get products by category via API (if needed)
+  const getProductsByCategory = async (category: string, page = 1, limit = 10) => {
+    try {
+      const response = await axios.get(
+        `${Backend_Url}/products/category/${category}?page=${page}&limit=${limit}`
+      );
+      if (response.data.status === "success") {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.message || "Failed to fetch products by category");
+      }
+    } catch (error: any) {
+      console.error("Error fetching products by category:", error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else {
+        throw new Error("Failed to fetch products by category");
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -286,31 +354,25 @@ const AdminDashboard = () => {
 
     try {
       if (editingProduct) {
-        const updatedProduct: Product = {
-          ...editingProduct,
-          ...formData,
-          updatedAt: new Date().toISOString(),
-        };
-
-        const updatedProducts = products.map((p) =>
-          p.id === editingProduct.id ? updatedProduct : p
+        // Update existing product
+        const updatedProduct = await updateProduct(editingProduct._id, formData);
+        
+        // Update local state
+        setProducts((prev) =>
+          prev.map((p) => (p._id === editingProduct._id ? updatedProduct : p))
         );
-
-        saveProducts(updatedProducts);
+        
         setMessage({
           type: "success",
           content: "Product updated successfully!",
         });
       } else {
-        const newProduct: Product = {
-          id: Date.now().toString(),
-          ...formData,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-
-        const updatedProducts = [...products, newProduct];
-        saveProducts(updatedProducts);
+        // Create new product
+        const newProduct = await createProduct(formData);
+        
+        // Add to local state
+        setProducts((prev) => [...prev, newProduct]);
+        
         setMessage({
           type: "success",
           content: "Product created successfully!",
@@ -319,9 +381,13 @@ const AdminDashboard = () => {
 
       resetForm();
       setTimeout(() => setMessage({ type: "", content: "" }), 3000);
-    } catch (_error) {
-      console.error("Error saving product:", _error);
-      setMessage({ type: "error", content: "Something went wrong!" });
+    } catch (error: any) {
+      console.error("Error saving product:", error);
+      setMessage({ 
+        type: "error", 
+        content: error.message || "Something went wrong!" 
+      });
+      setTimeout(() => setMessage({ type: "", content: "" }), 5000);
     } finally {
       setIsLoading(false);
     }
@@ -330,8 +396,7 @@ const AdminDashboard = () => {
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
 
-    const productImages =
-      product.images || (product.imageUrl ? [product.imageUrl] : []);
+    const productImages = product.images || (product.imageUrl ? [product.imageUrl] : []);
 
     setFormData({
       name: product.name,
@@ -350,12 +415,30 @@ const AdminDashboard = () => {
     setShowModal(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
-      const updatedProducts = products.filter((p) => p.id !== id);
-      saveProducts(updatedProducts);
-      setMessage({ type: "success", content: "Product deleted successfully!" });
-      setTimeout(() => setMessage({ type: "", content: "" }), 3000);
+      try {
+        setIsLoading(true);
+        await deleteProduct(id);
+        
+        // Remove from local state
+        setProducts((prev) => prev.filter((p) => p._id !== id));
+        
+        setMessage({ 
+          type: "success", 
+          content: "Product deleted successfully!" 
+        });
+        setTimeout(() => setMessage({ type: "", content: "" }), 3000);
+      } catch (error: any) {
+        console.error("Error deleting product:", error);
+        setMessage({ 
+          type: "error", 
+          content: error.message || "Failed to delete product" 
+        });
+        setTimeout(() => setMessage({ type: "", content: "" }), 5000);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -390,6 +473,13 @@ const AdminDashboard = () => {
   const endIndex = startIndex + productsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, endIndex);
 
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href = "/login";
+  };
+
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
@@ -415,403 +505,413 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 mt-16">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Admin Dashboard
-              </h1>
+              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
               <p className="text-gray-600">Manage your product inventory</p>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowModal(true)}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-            >
-              Add New Product
-            </motion.button>
+            <div>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowModal(true)}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                disabled={isLoading}
+              >
+                Add New Product
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleLogout()}
+                className="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors ml-4"
+              >
+                Logout
+              </motion.button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
-        >
-          <motion.div
-            variants={itemVariants}
-            className="bg-white rounded-lg shadow-sm p-6"
-          >
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <span className="text-2xl">📦</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Total Products</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {products.length}
-                </p>
-              </div>
-            </div>
-          </motion.div>
+      {/* Loading State */}
+      {isLoadingProducts && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+          </div>
+        </div>
+      )}
 
-          <motion.div
-            variants={itemVariants}
-            className="bg-white rounded-lg shadow-sm p-6"
-          >
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <span className="text-2xl">✅</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Active Products</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {products.filter((p) => p.status === "active").length}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            variants={itemVariants}
-            className="bg-white rounded-lg shadow-sm p-6"
-          >
-            <div className="flex items-center">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <span className="text-2xl">📊</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Low Stock</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {products.filter((p) => p.stock < 10).length}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-
-        {/* Message Display */}
-        <AnimatePresence>
-          {message.content && (
+      {!isLoadingProducts && (
+        <>
+          {/* Stats Cards */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className={`mb-6 p-4 rounded-lg ${
-                message.type === "success"
-                  ? "bg-green-50 text-green-700 border border-green-200"
-                  : "bg-red-50 text-red-700 border border-red-200"
-              }`}
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
             >
-              {message.content}
+              <motion.div variants={itemVariants} className="bg-white rounded-lg shadow-sm p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <span className="text-2xl">📦</span>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm text-gray-600">Total Products</p>
+                    <p className="text-2xl font-bold text-gray-900">{products.length}</p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div variants={itemVariants} className="bg-white rounded-lg shadow-sm p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <span className="text-2xl">✅</span>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm text-gray-600">Active Products</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {products.filter((p) => p.status === "active").length}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div variants={itemVariants} className="bg-white rounded-lg shadow-sm p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <span className="text-2xl">📊</span>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm text-gray-600">Low Stock</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {products.filter((p) => p.stock < 10).length}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div variants={itemVariants} className="bg-white rounded-lg shadow-sm p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <span className="text-2xl">🔄</span>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm text-gray-600">Refresh Data</p>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={fetchProducts}
+                      disabled={isLoadingProducts}
+                      className="text-sm bg-purple-600 text-white px-3 py-1 rounded-md hover:bg-purple-700 disabled:opacity-50"
+                    >
+                      {isLoadingProducts ? "Loading..." : "Refresh"}
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
-          )}
-        </AnimatePresence>
 
-        {/* Filters and Search */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Search
-              </label>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search products, SKU, description..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Category
-              </label>
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Categories</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Status
-              </label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Sort By
-              </label>
-              <div className="flex space-x-2">
-                <select
-                  value={sortBy}
-                  onChange={(e) =>
-                    setSortBy(
-                      e.target.value as "name" | "price" | "stock" | "createdAt"
-                    )
-                  }
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            {/* Message Display */}
+            <AnimatePresence>
+              {message.content && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className={`mb-6 p-4 rounded-lg ${
+                    message.type === "success"
+                      ? "bg-green-50 text-green-700 border border-green-200"
+                      : "bg-red-50 text-red-700 border border-red-200"
+                  }`}
                 >
-                  <option value="createdAt">Date Created</option>
-                  <option value="name">Name</option>
-                  <option value="price">Price</option>
-                  <option value="stock">Stock</option>
-                </select>
+                  {message.content}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Filters and Search */}
+            <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search products, SKU, description..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Categories</option>
+                    {categories.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                  <div className="flex space-x-2">
+                    <select
+                      value={sortBy}
+                      onChange={(e) =>
+                        setSortBy(e.target.value as "name" | "price" | "stock" | "createdAt")
+                      }
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="createdAt">Date Created</option>
+                      <option value="name">Name</option>
+                      <option value="price">Price</option>
+                      <option value="stock">Stock</option>
+                    </select>
+                    <button
+                      onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                      className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    >
+                      {sortOrder === "asc" ? "↑" : "↓"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center text-sm text-gray-600">
+                <span>
+                  Showing {startIndex + 1}-{Math.min(endIndex, filteredProducts.length)} of{" "}
+                  {filteredProducts.length} products
+                </span>
                 <button
-                  onClick={() =>
-                    setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-                  }
-                  className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setCategoryFilter("all");
+                    setStatusFilter("all");
+                    setSortBy("createdAt");
+                    setSortOrder("desc");
+                  }}
+                  className="text-blue-600 hover:text-blue-700"
                 >
-                  {sortOrder === "asc" ? "↑" : "↓"}
+                  Clear Filters
                 </button>
               </div>
             </div>
-          </div>
 
-          <div className="flex justify-between items-center text-sm text-gray-600">
-            <span>
-              Showing {startIndex + 1}-
-              {Math.min(endIndex, filteredProducts.length)} of{" "}
-              {filteredProducts.length} products
-            </span>
-            <button
-              onClick={() => {
-                setSearchTerm("");
-                setCategoryFilter("all");
-                setStatusFilter("all");
-                setSortBy("createdAt");
-                setSortOrder("desc");
-              }}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              Clear Filters
-            </button>
-          </div>
-        </div>
-
-        {/* Products Table */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Product
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    SKU
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Price
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Stock
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                <AnimatePresence>
-                  {currentProducts.map((product) => (
-                    <motion.tr
-                      key={product.id}
-                      variants={itemVariants}
-                      initial="hidden"
-                      animate="visible"
-                      exit={{ opacity: 0, x: -100 }}
-                      layout
-                      className="hover:bg-gray-50"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-12 w-12 relative">
-                            <Image
-                              src={
-                                product.images?.[0] ||
-                                product.imageUrl ||
-                                "/placeholder-product.jpg"
-                              }
-                              alt={product.name}
-                              width={48}
-                              height={48}
-                              className="h-12 w-12 rounded-lg object-cover cursor-pointer"
-                              onError={(e) => {
-                                e.currentTarget.src =
-                                  "/placeholder-product.jpg";
-                              }}
-                              onClick={() => setShowImageGallery(product.id)}
-                            />
-                            {product.images && product.images.length > 1 && (
-                              <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                                {product.images.length}
+            {/* Products Table */}
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Product
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        SKU
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Category
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Price
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Stock
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    <AnimatePresence>
+                      {currentProducts.map((product) => (
+                        <motion.tr
+                          key={product._id}
+                          variants={itemVariants}
+                          initial="hidden"
+                          animate="visible"
+                          exit={{ opacity: 0, x: -100 }}
+                          layout
+                          className="hover:bg-gray-50"
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-12 w-12 relative">
+                                <Image
+                                  src={
+                                    product.images?.[0] ||
+                                    product.imageUrl ||
+                                    "/placeholder-product.jpg"
+                                  }
+                                  alt={product.name}
+                                  width={48}
+                                  height={48}
+                                  className="h-12 w-12 rounded-lg object-cover cursor-pointer"
+                                  onError={(e) => {
+                                    e.currentTarget.src = "/placeholder-product.jpg";
+                                  }}
+                                  onClick={() => setShowImageGallery(product._id)}
+                                />
+                                {product.images && product.images.length > 1 && (
+                                  <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                    {product.images.length}
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
-                              {product.name}
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
+                                  {product.name}
+                                </div>
+                                <div className="text-sm text-gray-500 max-w-xs truncate">
+                                  {product.description}
+                                </div>
+                                {product.images && product.images.length > 1 && (
+                                  <button
+                                    onClick={() => setShowImageGallery(product._id)}
+                                    className="text-xs text-blue-600 hover:text-blue-800"
+                                  >
+                                    View all {product.images.length} images
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-500 max-w-xs truncate">
-                              {product.description}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
+                            {product.sku}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                              {product.category}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                            <div className="flex flex-col">
+                              <span className="text-lg font-bold text-gray-900">
+                                ${product.price.toLocaleString()}
+                              </span>
+                              {product.originalPrice && product.originalPrice > product.price && (
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-sm text-gray-500 line-through">
+                                    ${product.originalPrice.toLocaleString()}
+                                  </span>
+                                  <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                                    {calculateDiscount(product.price, product.originalPrice)}% OFF
+                                  </span>
+                                </div>
+                              )}
                             </div>
-                            {product.images && product.images.length > 1 && (
-                              <button
-                                onClick={() => setShowImageGallery(product.id)}
-                                className="text-xs text-blue-600 hover:text-blue-800"
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <span
+                              className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                product.stock < 10
+                                  ? "bg-red-100 text-red-800"
+                                  : product.stock < 50
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-green-100 text-green-800"
+                              }`}
+                            >
+                              {product.stock} units
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                product.status === "active"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {product.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex space-x-2">
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleEdit(product)}
+                                disabled={isLoading}
+                                className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
                               >
-                                View all {product.images.length} images
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
-                        {product.sku}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                          {product.category}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                        <div className="flex flex-col">
-                          <span className="text-lg font-bold text-gray-900">
-                            ${product.price.toLocaleString()}
-                          </span>
-                          {product.originalPrice &&
-                            product.originalPrice > product.price && (
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm text-gray-500 line-through">
-                                  ${product.originalPrice.toLocaleString()}
-                                </span>
-                                <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
-                                  {calculateDiscount(
-                                    product.price,
-                                    product.originalPrice
-                                  )}
-                                  % OFF
-                                </span>
-                              </div>
-                            )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <span
-                          className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            product.stock < 10
-                              ? "bg-red-100 text-red-800"
-                              : product.stock < 50
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-green-100 text-green-800"
-                          }`}
-                        >
-                          {product.stock} units
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            product.status === "active"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {product.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => handleEdit(product)}
-                            className="text-blue-600 hover:text-blue-900"
-                          >
-                            Edit
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => handleDelete(product.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            Delete
-                          </motion.button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </AnimatePresence>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-700">
-                  Page {currentPage} of {totalPages}
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.max(1, prev - 1))
-                    }
-                    disabled={currentPage === 1}
-                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                    }
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
-                </div>
+                                Edit
+                              </motion.button>
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleDelete(product._id)}
+                                disabled={isLoading}
+                                className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                              >
+                                Delete
+                              </motion.button>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </AnimatePresence>
+                  </tbody>
+                </table>
               </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="px-6 py-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-700">
+                      Page {currentPage} of {totalPages}
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
 
       {/* Product Form Modal */}
       <AnimatePresence>
@@ -856,25 +956,19 @@ const AdminDashboard = () => {
                       type="text"
                       required
                       value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       placeholder="Enter product name"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      SKU *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">SKU *</label>
                     <input
                       type="text"
                       required
                       value={formData.sku}
-                      onChange={(e) =>
-                        setFormData({ ...formData, sku: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       placeholder="e.g., PRD-001"
                     />
@@ -889,9 +983,7 @@ const AdminDashboard = () => {
                     rows={3}
                     required
                     value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="Detailed product description"
                   />
@@ -905,9 +997,7 @@ const AdminDashboard = () => {
                     <select
                       required
                       value={formData.category}
-                      onChange={(e) =>
-                        setFormData({ ...formData, category: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Select category</option>
@@ -931,17 +1021,13 @@ const AdminDashboard = () => {
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          originalPrice: e.target.value
-                            ? parseFloat(e.target.value)
-                            : undefined,
+                          originalPrice: e.target.value ? parseFloat(e.target.value) : undefined,
                         })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       placeholder="0.00"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Leave empty if no discount
-                    </p>
+                    <p className="text-xs text-gray-500 mt-1">Leave empty if no discount</p>
                   </div>
 
                   <div>
@@ -963,22 +1049,15 @@ const AdminDashboard = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       placeholder="0.00"
                     />
-                    {formData.originalPrice &&
-                      formData.originalPrice > formData.price && (
-                        <p className="text-xs text-green-600 mt-1">
-                          {calculateDiscount(
-                            formData.price,
-                            formData.originalPrice
-                          )}
-                          % discount
-                        </p>
-                      )}
+                    {formData.originalPrice && formData.originalPrice > formData.price && (
+                      <p className="text-xs text-green-600 mt-1">
+                        {calculateDiscount(formData.price, formData.originalPrice)}% discount
+                      </p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Stock *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Stock *</label>
                     <input
                       type="number"
                       min="0"
@@ -1016,9 +1095,7 @@ const AdminDashboard = () => {
                     <label
                       htmlFor="imageUpload"
                       className={`cursor-pointer ${
-                        formData.images.length >= 5
-                          ? "cursor-not-allowed opacity-50"
-                          : ""
+                        formData.images.length >= 5 ? "cursor-not-allowed opacity-50" : ""
                       }`}
                     >
                       <div className="text-gray-400 mb-2">
@@ -1076,9 +1153,7 @@ const AdminDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Status *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Status *</label>
                   <select
                     required
                     value={formData.status}
@@ -1101,7 +1176,8 @@ const AdminDashboard = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={resetForm}
-                    className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium"
+                    disabled={isLoading}
+                    className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium disabled:opacity-50"
                   >
                     Cancel
                   </motion.button>
@@ -1132,7 +1208,7 @@ const AdminDashboard = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black/50 bg-opacity-75 flex items-center justify-center p-4 z-50"
             onClick={() => setShowImageGallery(null)}
           >
             <motion.div
@@ -1143,7 +1219,7 @@ const AdminDashboard = () => {
               onClick={(e) => e.stopPropagation()}
             >
               {(() => {
-                const product = products.find((p) => p.id === showImageGallery);
+                const product = products.find((p) => p._id === showImageGallery);
                 if (!product) return null;
 
                 return (
@@ -1187,6 +1263,18 @@ const AdminDashboard = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Global Loading Overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl">
+            <div className="flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <span className="text-gray-700">Processing...</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -96,7 +96,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // POST /api/products - Create a new product (admin/manager only)
-router.post("/", async (req, res) => {
+router.post("/", auth, async (req, res) => {
   try {
     // Check if user has permission to create products
     if (req.user.role !== "admin" && req.user.role !== "manager") {
@@ -105,6 +105,7 @@ router.post("/", async (req, res) => {
         message: "Access denied. Only admins and managers can create products.",
       });
     }
+    console.log("Creating product with data:", req.user.role);
 
     const productData = { ...req.body };
 
@@ -158,7 +159,7 @@ router.post("/", async (req, res) => {
 });
 
 // PUT /api/products/:id - Update a product (admin/manager only)
-router.put("/:id", async (req, res) => {
+router.put("/:id", auth, async (req, res) => {
   try {
     // Check if user has permission to update products
     if (req.user.role !== "admin" && req.user.role !== "manager") {
@@ -178,7 +179,7 @@ router.put("/:id", async (req, res) => {
     // Validate originalPrice vs price
     if (
       productData.originalPrice &&
-      productData.originalPrice < productData.price
+      productData.originalPrice <= productData.price
     ) {
       return res.status(400).json({
         status: "error",

@@ -69,10 +69,13 @@ export default function LoginPage() {
 
     try {
       // Make login API call - CORRECTED (removed auth headers)
-      const response = await axios.post<LoginResponse>(`${Backend_Url}/auth/login`, {
-        email,
-        password,
-      });
+      const response = await axios.post<LoginResponse>(
+        `${Backend_Url}/auth/login`,
+        {
+          email,
+          password,
+        }
+      );
 
       // CORRECTED response handling
       if (response.data.success) {
@@ -90,21 +93,8 @@ export default function LoginPage() {
       } else {
         setError(response.data.message || "Login failed");
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Login failed:", error);
-      
-      // Handle different types of errors
-      if (error.response?.data?.message) {
-        setError(error.response.data.message);
-      } else if (error.response?.status === 401) {
-        setError("Invalid email or password");
-      } else if (error.response?.status === 500) {
-        setError("Server error. Please try again later.");
-      } else if (error.code === "NETWORK_ERROR" || !error.response) {
-        setError("Network error. Please check your connection and try again.");
-      } else {
-        setError("An unexpected error occurred. Please try again.");
-      }
     } finally {
       setIsLoading(false);
     }

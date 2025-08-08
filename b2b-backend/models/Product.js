@@ -14,14 +14,6 @@ const productSchema = new mongoose.Schema({
   originalPrice: {
     type: Number,
     min: [0, "Original price cannot be negative"],
-    validate: {
-      validator: function (value) {
-        // If originalPrice is provided, it should be greater than or equal to current price
-        return !value || value >= this.price;
-      },
-      message:
-        "Original price should be greater than or equal to current price",
-    },
   },
   description: {
     type: String,
@@ -37,13 +29,7 @@ const productSchema = new mongoose.Schema({
   images: [
     {
       type: String,
-      validate: {
-        validator: function (url) {
-          // Basic URL validation
-          return /^(https?:\/\/)|(\/uploads\/)/.test(url);
-        },
-        message: "Invalid image URL format",
-      },
+      required: false,
     },
   ],
   stock: {
@@ -67,6 +53,14 @@ const productSchema = new mongoose.Schema({
       message: "Status must be either active or inactive",
     },
     default: "active",
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
   },
 });
 
