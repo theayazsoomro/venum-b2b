@@ -5,7 +5,23 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Blog } from "@/types/blogs";
+
+interface Blog {
+  _id: string;
+  title: string;
+  excerpt: string;
+  image: string;
+  author: {
+    name: string;
+    avatar: string;
+    bio: string;
+  };
+  youtubeUrl?: string;
+  createdAt: string;
+  readTime: string;
+  category: string;
+  tags: string[];
+}
 
 interface BlogsSectionProps {
   blogs?: Omit<Blog, "content">[];
@@ -27,7 +43,7 @@ const BlogsSection: React.FC<BlogsSectionProps> = ({ blogs: propBlogs }) => {
         );
         if (response.data.status === "success") {
           const blogsData = response.data.data.blogs.map((blog: Blog) => ({
-            id: blog._id,
+            _id: blog._id,
             title: blog.title,
             excerpt: blog.excerpt,
             image: blog.image,
@@ -42,6 +58,7 @@ const BlogsSection: React.FC<BlogsSectionProps> = ({ blogs: propBlogs }) => {
             tags: blog.tags,
           }));
           setBlogs(blogsData);
+          console.log("Blogs fetched successfully:", blogsData[0].id);
         }
       } catch (error) {
         console.error("Error fetching blogs:", error);
@@ -238,7 +255,7 @@ const BlogsSection: React.FC<BlogsSectionProps> = ({ blogs: propBlogs }) => {
                         <div className="flex items-center space-x-3">
                           <span>{blog.author.name}</span>
                           <span>•</span>
-                          <span>{blog.date}</span>
+                          {/* <span>{blog.date}</span> */}
                         </div>
                         <span>{blog.readTime}</span>
                       </div>
