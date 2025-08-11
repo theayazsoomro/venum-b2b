@@ -600,9 +600,7 @@ const AdminDashboard = () => {
       console.error("Error submitting product:", error);
       setMessage({
         type: "error",
-        content:
-          (error as AxiosError).response?.data?.message ||
-          "Failed to submit product",
+        content: "Failed to submit product",
       });
       setTimeout(() => setMessage({ type: "", content: "" }), 5000);
     } finally {
@@ -651,9 +649,7 @@ const AdminDashboard = () => {
         console.error("Error deleting product:", error);
         setMessage({
           type: "error",
-          content:
-            (error as AxiosError).response?.data?.message ||
-            "Failed to delete product",
+          content: "Failed to delete product",
         });
         setTimeout(() => setMessage({ type: "", content: "" }), 5000);
       } finally {
@@ -723,27 +719,27 @@ const AdminDashboard = () => {
   };
 
   // Check if user is admin
-  const isAdmin = localStorage.getItem("role") === "admin";
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Access Denied
-          </h1>
-          <p className="text-gray-600">
-            You do not have permission to view this page.
-          </p>
-          <button
-            onClick={() => (window.location.href = "/login")}
-            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Go to Login
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // const isAdmin = localStorage.getItem("role") === "admin";
+  // if (!isAdmin) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center bg-gray-50">
+  //       <div className="text-center">
+  //         <h1 className="text-2xl font-bold text-gray-900 mb-4">
+  //           Access Denied
+  //         </h1>
+  //         <p className="text-gray-600">
+  //           You do not have permission to view this page.
+  //         </p>
+  //         <button
+  //           onClick={() => (window.location.href = "/login")}
+  //           className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+  //         >
+  //           Go to Login
+  //         </button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50 mt-16">

@@ -5,7 +5,7 @@ export interface Author {
 }
 
 export interface Blog {
-  id: number;
+  _id: string;
   title: string;
   content: string;
   excerpt: string;
@@ -15,6 +15,7 @@ export interface Blog {
   readTime: string;
   category: string;
   tags: string[];
+  createdAt: string;
 }
 
 export interface RelatedBlog {

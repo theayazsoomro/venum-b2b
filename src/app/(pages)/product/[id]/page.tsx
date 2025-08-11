@@ -112,9 +112,7 @@ export default function SingleProductPage({ params }: PageProps) {
   React.useEffect(() => {
     const fetchProductById = async () => {
       try {
-        const response = await axios.get<Product>(
-          `${backendUrl}/products/${id}`
-        );
+        const response = await axios.get(`${backendUrl}/products/${id}`);
         const productData = response.data.data.product; // Assuming the API returns an array of products
         setProduct(productData);
         console.log("Fetched product:", productData);
@@ -151,7 +149,7 @@ export default function SingleProductPage({ params }: PageProps) {
         name: product.name,
         price: product.price,
         imageUrl: product.images[currentImageIndex],
-       },);
+      });
       console.log("Added to cart:", { ...product, quantity });
     }
   };

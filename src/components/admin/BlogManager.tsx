@@ -22,6 +22,7 @@ interface Blog {
   readTime: string;
   category: string;
   tags: string[];
+  youtubeUrl?: string;
   status: "draft" | "published" | "archived";
   featured: boolean;
   createdAt: string;
@@ -241,17 +242,9 @@ const BlogManager = () => {
       resetForm();
       await fetchBlogs();
       setTimeout(() => setMessage({ type: "", content: "" }), 3000);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error submitting blog:", error);
-      console.error("Error details:", error.response?.data); // Debug log
-      
-      let errorMessage = "Failed to submit blog";
-      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
-        errorMessage = error.response.data.errors.map((err: any) => err.msg).join(", ");
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      }
-      
+      const errorMessage = "Failed to submit blog";
       setMessage({
         type: "error",
         content: errorMessage,
@@ -270,7 +263,7 @@ const BlogManager = () => {
       content: blog.content,
       excerpt: blog.excerpt,
       image: blog.image,
-      youtubeUrl: (blog as any).youtubeUrl || "",
+      youtubeUrl: blog.youtubeUrl || "",
       author: blog.author,
       readTime: blog.readTime,
       category: blog.category,
@@ -295,11 +288,11 @@ const BlogManager = () => {
         });
         await fetchBlogs();
         setTimeout(() => setMessage({ type: "", content: "" }), 3000);
-      } catch (error: any) {
+      } catch (error) {
         console.error("Error deleting blog:", error);
         setMessage({
           type: "error",
-          content: error.response?.data?.message || "Failed to delete blog",
+          content: "Failed to delete blog",
         });
         setTimeout(() => setMessage({ type: "", content: "" }), 5000);
       }

@@ -18,6 +18,7 @@ interface Blog {
     avatar: string;
     bio: string;
   };
+  youtubeUrl?: string;
   createdAt: string;
   readTime: string;
   category: string;
@@ -51,7 +52,7 @@ export default function BlogPage() {
         const response = await axios.get(`${Backend_Url}/blogs?${params}`);
         
         if (response.data.status === "success") {
-          const blogsData = response.data.data.blogs.map((blog: any) => ({
+          const blogsData = response.data.data.blogs.map((blog: Blog) => ({
             _id: blog._id,
             title: blog.title,
             excerpt: blog.excerpt,

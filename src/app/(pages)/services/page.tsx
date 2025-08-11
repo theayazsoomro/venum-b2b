@@ -297,7 +297,7 @@ const ServicesPage = () => {
     }));
   };
 
-  const handleCustomSubmit = async (e) => {
+  const handleCustomSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -348,9 +348,7 @@ const ServicesPage = () => {
       }
     } catch (error) {
       console.error("Error submitting custom request:", error);
-      setSubmitMessage(
-        error.response?.data?.error || "Something went wrong. Please try again."
-      );
+      setSubmitMessage("Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

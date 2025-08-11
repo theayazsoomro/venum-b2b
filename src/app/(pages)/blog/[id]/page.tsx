@@ -93,9 +93,9 @@ const SingleBlogPage: React.FC = () => {
           
           if (relatedResponse.data.status === "success") {
             const related = relatedResponse.data.data.blogs
-              .filter((blog: any) => blog._id !== params.id)
+              .filter((blog: BlogPost) => blog._id !== params.id)
               .slice(0, 3)
-              .map((blog: any) => ({
+              .map((blog: BlogPost) => ({
                 id: blog._id,
                 title: blog.title,
                 excerpt: blog.excerpt,

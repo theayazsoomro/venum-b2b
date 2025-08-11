@@ -8,13 +8,13 @@ import axios from "axios";
 import { Blog } from "@/types/blogs";
 
 interface BlogsSectionProps {
-  blogs?: Omit<Blog, 'content'>[];
+  blogs?: Omit<Blog, "content">[];
 }
 
 const Backend_Url = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 const BlogsSection: React.FC<BlogsSectionProps> = ({ blogs: propBlogs }) => {
-  const [blogs, setBlogs] = useState<Omit<Blog, 'content'>[]>([]);
+  const [blogs, setBlogs] = useState<Omit<Blog, "content">[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch blogs from API
@@ -22,29 +22,31 @@ const BlogsSection: React.FC<BlogsSectionProps> = ({ blogs: propBlogs }) => {
     const fetchBlogs = async () => {
       try {
         setIsLoading(true);
-        const response = await axios.get(`${Backend_Url}/blogs?limit=3&featured=true`);
+        const response = await axios.get(
+          `${Backend_Url}/blogs?limit=3&featured=true`
+        );
         if (response.data.status === "success") {
-          const blogsData = response.data.data.blogs.map((blog: any) => ({
+          const blogsData = response.data.data.blogs.map((blog: Blog) => ({
             id: blog._id,
             title: blog.title,
             excerpt: blog.excerpt,
             image: blog.image,
             author: blog.author,
             date: new Date(blog.createdAt).toLocaleDateString("en-US", {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
+              year: "numeric",
+              month: "long",
+              day: "numeric",
             }),
             readTime: blog.readTime,
             category: blog.category,
-            tags: blog.tags
+            tags: blog.tags,
           }));
           setBlogs(blogsData);
         }
       } catch (error) {
         console.error("Error fetching blogs:", error);
         // Use default blogs as fallback
-        setBlogs(defaultBlogs);
+        setBlogs([]);
       } finally {
         setIsLoading(false);
       }
@@ -59,53 +61,53 @@ const BlogsSection: React.FC<BlogsSectionProps> = ({ blogs: propBlogs }) => {
   }, [propBlogs]);
 
   // Sample blog data as fallback
-  const defaultBlogs: Omit<Blog, 'content'>[] = [
-    {
-      id: 1,
-      title: "The Future of Web Development",
-      excerpt: "Exploring the latest trends and technologies shaping the future of web development in 2025.",
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
-      author: {
-        name: "John Doe",
-        avatar: "/author-1.jpg",
-        bio: "Full-stack developer with 8+ years of experience in modern web technologies."
-      },
-      date: "March 15, 2025",
-      readTime: "5 min read",
-      category: "Technology",
-      tags: ["Web Development", "Technology", "Future", "Trends"]
-    },
-    {
-      id: 2,
-      title: "Mastering React Performance",
-      excerpt: "Learn advanced techniques to optimize your React applications for better performance.",
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
-      author: {
-        name: "Jane Smith",
-        avatar: "/author-2.jpg",
-        bio: "React specialist and performance optimization expert."
-      },
-      date: "March 10, 2025",
-      readTime: "7 min read",
-      category: "React",
-      tags: ["React", "Performance", "Optimization"]
-    },
-    {
-      id: 3,
-      title: "UI/UX Design Principles",
-      excerpt: "Essential design principles every developer should know to create better user experiences.",
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
-      author: {
-        name: "Mike Johnson",
-        avatar: "/author-3.jpg",
-        bio: "UI/UX designer with a passion for creating intuitive user experiences."
-      },
-      date: "March 5, 2025",
-      readTime: "4 min read",
-      category: "Design",
-      tags: ["UI", "UX", "Design", "User Experience"]
-    }
-  ];
+  // const defaultBlogs: Omit<Blog, 'content'>[] = [
+  //   {
+  //     _id "1",
+  //     title: "The Future of Web Development",
+  //     excerpt: "Exploring the latest trends and technologies shaping the future of web development in 2025.",
+  //     image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
+  //     author: {
+  //       name: "John Doe",
+  //       avatar: "/author-1.jpg",
+  //       bio: "Full-stack developer with 8+ years of experience in modern web technologies."
+  //     },
+  //     date: "March 15, 2025",
+  //     readTime: "5 min read",
+  //     category: "Technology",
+  //     tags: ["Web Development", "Technology", "Future", "Trends"]
+  //   },
+  //   {
+  //     _id 2,
+  //     title: "Mastering React Performance",
+  //     excerpt: "Learn advanced techniques to optimize your React applications for better performance.",
+  //     image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
+  //     author: {
+  //       name: "Jane Smith",
+  //       avatar: "/author-2.jpg",
+  //       bio: "React specialist and performance optimization expert."
+  //     },
+  //     date: "March 10, 2025",
+  //     readTime: "7 min read",
+  //     category: "React",
+  //     tags: ["React", "Performance", "Optimization"]
+  //   },
+  //   {
+  //     _id 3,
+  //     title: "UI/UX Design Principles",
+  //     excerpt: "Essential design principles every developer should know to create better user experiences.",
+  //     image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
+  //     author: {
+  //       name: "Mike Johnson",
+  //       avatar: "/author-3.jpg",
+  //       bio: "UI/UX designer with a passion for creating intuitive user experiences."
+  //     },
+  //     date: "March 5, 2025",
+  //     readTime: "4 min read",
+  //     category: "Design",
+  //     tags: ["UI", "UX", "Design", "User Experience"]
+  //   }
+  // ];
 
   // This line is now handled in useEffect above
 
@@ -115,24 +117,24 @@ const BlogsSection: React.FC<BlogsSectionProps> = ({ blogs: propBlogs }) => {
       opacity: 1,
       transition: {
         staggerChildren: 0.2,
-        duration: 0.6
-      }
-    }
+        duration: 0.6,
+      },
+    },
   };
 
   const itemVariants: Variants = {
-    hidden: { 
-      opacity: 0, 
-      y: 50 
+    hidden: {
+      opacity: 0,
+      y: 50,
     },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
         duration: 0.6,
-        ease: "easeOut"
-      }
-    }
+        ease: "easeOut",
+      },
+    },
   };
 
   const cardHoverVariants: Variants = {
@@ -141,9 +143,9 @@ const BlogsSection: React.FC<BlogsSectionProps> = ({ blogs: propBlogs }) => {
       scale: 1.02,
       transition: {
         duration: 0.3,
-        ease: "easeInOut"
-      }
-    }
+        ease: "easeInOut",
+      },
+    },
   };
 
   return (
@@ -161,7 +163,8 @@ const BlogsSection: React.FC<BlogsSectionProps> = ({ blogs: propBlogs }) => {
             Latest from Our Blog
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Stay updated with the latest insights, tutorials, and industry trends.
+            Stay updated with the latest insights, tutorials, and industry
+            trends.
           </p>
         </motion.div>
 
@@ -169,7 +172,10 @@ const BlogsSection: React.FC<BlogsSectionProps> = ({ blogs: propBlogs }) => {
         {isLoading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-xl shadow-lg overflow-hidden animate-pulse">
+              <div
+                key={i}
+                className="bg-white rounded-xl shadow-lg overflow-hidden animate-pulse"
+              >
                 <div className="h-48 bg-gray-200"></div>
                 <div className="p-6">
                   <div className="h-6 bg-gray-200 rounded mb-3"></div>
@@ -195,52 +201,52 @@ const BlogsSection: React.FC<BlogsSectionProps> = ({ blogs: propBlogs }) => {
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
             {blogs.map((blog) => (
-            <motion.article
-              key={blog.id}
-              variants={itemVariants}
-              whileHover="hover"
-              className="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer"
-            >
-              <Link href={`/blog/${blog.id}`}>
-                <motion.div variants={cardHoverVariants}>
-                  {/* Blog Image */}
-                  <div className="relative h-48 overflow-hidden">
-                    <Image
-                      src={blog.image}
-                      alt={blog.title}
-                      fill
-                      className="object-cover transition-transform duration-300 hover:scale-110"
-                    />
-                    <div className="absolute top-4 left-4">
-                      <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                        {blog.category}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Blog Content */}
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
-                      {blog.title}
-                    </h3>
-                    <p className="text-gray-600 mb-4 line-clamp-3">
-                      {blog.excerpt}
-                    </p>
-
-                    {/* Blog Meta */}
-                    <div className="flex items-center justify-between text-sm text-gray-500">
-                      <div className="flex items-center space-x-3">
-                        <span>{blog.author.name}</span>
-                        <span>•</span>
-                        <span>{blog.date}</span>
+              <motion.article
+                key={blog._id}
+                variants={itemVariants}
+                whileHover="hover"
+                className="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer"
+              >
+                <Link href={`/blog/${blog._id}`}>
+                  <motion.div variants={cardHoverVariants}>
+                    {/* Blog Image */}
+                    <div className="relative h-48 overflow-hidden">
+                      <Image
+                        src={blog.image}
+                        alt={blog.title}
+                        fill
+                        className="object-cover transition-transform duration-300 hover:scale-110"
+                      />
+                      <div className="absolute top-4 left-4">
+                        <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                          {blog.category}
+                        </span>
                       </div>
-                      <span>{blog.readTime}</span>
                     </div>
-                  </div>
-                </motion.div>
-              </Link>
-            </motion.article>
-          ))}
+
+                    {/* Blog Content */}
+                    <div className="p-6">
+                      <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
+                        {blog.title}
+                      </h3>
+                      <p className="text-gray-600 mb-4 line-clamp-3">
+                        {blog.excerpt}
+                      </p>
+
+                      {/* Blog Meta */}
+                      <div className="flex items-center justify-between text-sm text-gray-500">
+                        <div className="flex items-center space-x-3">
+                          <span>{blog.author.name}</span>
+                          <span>•</span>
+                          <span>{blog.date}</span>
+                        </div>
+                        <span>{blog.readTime}</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                </Link>
+              </motion.article>
+            ))}
           </motion.div>
         )}
 
