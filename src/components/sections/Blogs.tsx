@@ -3,14 +3,62 @@
 import { motion, Variants } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { Blog } from "@/types/blogs";
 
 interface BlogsSectionProps {
   blogs?: Omit<Blog, 'content'>[];
 }
 
+const Backend_Url = process.env.NEXT_PUBLIC_BACKEND_URL;
+
 const BlogsSection: React.FC<BlogsSectionProps> = ({ blogs: propBlogs }) => {
-  // Sample blog data - replace with your actual data source
+  const [blogs, setBlogs] = useState<Omit<Blog, 'content'>[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch blogs from API
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        setIsLoading(true);
+        const response = await axios.get(`${Backend_Url}/blogs?limit=3&featured=true`);
+        if (response.data.status === "success") {
+          const blogsData = response.data.data.blogs.map((blog: any) => ({
+            id: blog._id,
+            title: blog.title,
+            excerpt: blog.excerpt,
+            image: blog.image,
+            author: blog.author,
+            date: new Date(blog.createdAt).toLocaleDateString("en-US", {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }),
+            readTime: blog.readTime,
+            category: blog.category,
+            tags: blog.tags
+          }));
+          setBlogs(blogsData);
+        }
+      } catch (error) {
+        console.error("Error fetching blogs:", error);
+        // Use default blogs as fallback
+        setBlogs(defaultBlogs);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (!propBlogs) {
+      fetchBlogs();
+    } else {
+      setBlogs(propBlogs);
+      setIsLoading(false);
+    }
+  }, [propBlogs]);
+
+  // Sample blog data as fallback
   const defaultBlogs: Omit<Blog, 'content'>[] = [
     {
       id: 1,
@@ -59,7 +107,7 @@ const BlogsSection: React.FC<BlogsSectionProps> = ({ blogs: propBlogs }) => {
     }
   ];
 
-  const blogs = propBlogs || defaultBlogs;
+  // This line is now handled in useEffect above
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -117,15 +165,36 @@ const BlogsSection: React.FC<BlogsSectionProps> = ({ blogs: propBlogs }) => {
           </p>
         </motion.div>
 
+        {/* Loading State */}
+        {isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-xl shadow-lg overflow-hidden animate-pulse">
+                <div className="h-48 bg-gray-200"></div>
+                <div className="p-6">
+                  <div className="h-6 bg-gray-200 rounded mb-3"></div>
+                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded mb-4 w-3/4"></div>
+                  <div className="flex justify-between">
+                    <div className="h-3 bg-gray-200 rounded w-20"></div>
+                    <div className="h-3 bg-gray-200 rounded w-16"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Blog Cards Grid */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-        >
-          {blogs.map((blog) => (
+        {!isLoading && (
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          >
+            {blogs.map((blog) => (
             <motion.article
               key={blog.id}
               variants={itemVariants}
@@ -172,7 +241,8 @@ const BlogsSection: React.FC<BlogsSectionProps> = ({ blogs: propBlogs }) => {
               </Link>
             </motion.article>
           ))}
-        </motion.div>
+          </motion.div>
+        )}
 
         {/* View All Blogs Button */}
         <motion.div

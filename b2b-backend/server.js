@@ -11,7 +11,11 @@ const app = express();
 // Import routes
 import productRoutes from "./routes/productRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import blogRoutes from "./routes/blogRoutes.js";
+import commentRoutes from "./routes/commentRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
 import auth from "./middleware/auth.js";
+import contactRoutes from "./routes/contactRoute.js";
 
 // Middleware
 app.use(morgan("dev"));
@@ -41,6 +45,10 @@ mongoose
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/blogs", blogRoutes);
+app.use("/api/comments", commentRoutes);
+app.use("/api/upload", uploadRoutes);
+app.use("/api/contact", contactRoutes);
 
 // 404 handler
 app.use("*", (req, res) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import Image from "next/image";
@@ -13,6 +13,9 @@ import {
   Box,
 } from "lucide-react";
 import Link from "next/link";
+import axios from "axios";
+
+const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 interface Service {
   id: string;
@@ -294,48 +297,60 @@ const ServicesPage = () => {
     }));
   };
 
-  const handleCustomSubmit = async (e: React.FormEvent) => {
+  const handleCustomSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      console.log("Custom product request:", customRequest);
-      setSubmitMessage(
-        "Thank you! We'll review your custom product request and get back to you within 24 hours with a detailed quote."
-      );
-
-      // Reset form
-      setCustomRequest({
-        productType: "",
-        quantity: 1,
-        specifications: "",
-        budget: "",
-        timeline: "",
-        contactInfo: {
-          name: "",
-          email: "",
-          company: "",
-          phone: "",
-        },
-        additionalNotes: "",
-        productImages: [],
+      // Send email to backend with correct data structure
+      const response = await axios.post(`${backendUrl}/contact/send-email`, {
+        productType: customRequest.productType,
+        quantity: customRequest.quantity,
+        specifications: customRequest.specifications,
+        budget: customRequest.budget,
+        timeline: customRequest.timeline,
+        contactInfo: customRequest.contactInfo,
+        additionalNotes: customRequest.additionalNotes,
+        productImages: customRequest.productImages,
       });
 
-      // Reset image states
-      setSelectedFiles([]);
-      setImagePreviews([]);
-      setUploadProgress([]);
+      if (response.data.success) {
+        setSubmitMessage(
+          "Thank you! We'll review your custom product request and get back to you within 24 hours with a detailed quote."
+        );
 
-      setTimeout(() => {
-        setShowCustomForm(false);
-        setSubmitMessage("");
-      }, 4000);
+        // Reset form
+        setCustomRequest({
+          productType: "",
+          quantity: 1,
+          specifications: "",
+          budget: "",
+          timeline: "",
+          contactInfo: {
+            name: "",
+            email: "",
+            company: "",
+            phone: "",
+          },
+          additionalNotes: "",
+          productImages: [],
+        });
+
+        // Reset image states
+        setSelectedFiles([]);
+        setImagePreviews([]);
+        setUploadProgress([]);
+
+        setTimeout(() => {
+          setShowCustomForm(false);
+          setSubmitMessage("");
+        }, 4000);
+      }
     } catch (error) {
       console.error("Error submitting custom request:", error);
-      setSubmitMessage("Something went wrong. Please try again.");
+      setSubmitMessage(
+        error.response?.data?.error || "Something went wrong. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }

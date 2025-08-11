@@ -1,27 +1,33 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, Variants } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { useParams, notFound } from "next/navigation";
+import axios from "axios";
+import { extractYouTubeVideoId, getYouTubeEmbedUrl } from "@/utils/youtube";
+
+const Backend_Url = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 interface BlogPost {
-  id: string;
+  _id: string;
   title: string;
   excerpt: string;
   content: string;
   author: {
     name: string;
-    role: string;
     avatar: string;
     bio: string;
   };
-  publishedAt: string;
-  readTime: number;
+  createdAt: string;
+  readTime: string;
   category: string;
   tags: string[];
-  featuredImage: string;
-  relatedPosts: RelatedPost[];
+  image: string;
+  youtubeUrl?: string;
+  status: string;
+  featured: boolean;
 }
 
 interface RelatedPost {
@@ -34,177 +40,148 @@ interface RelatedPost {
 }
 
 interface Comment {
-  id: string;
-  author: string;
+  _id: string;
+  blogId: string;
+  author: {
+    name: string;
+    email: string;
+    avatar: string;
+  };
   content: string;
-  publishedAt: string;
-  avatar: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CommentFormData {
+  name: string;
+  email: string;
+  content: string;
 }
 
 const SingleBlogPage: React.FC = () => {
+  const params = useParams();
+  const [blogPost, setBlogPost] = useState<BlogPost | null>(null);
+  const [relatedPosts, setRelatedPosts] = useState<RelatedPost[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
-  const [comments, setComments] = useState<Comment[]>([
-    {
-      id: "1",
-      author: "Sarah Johnson",
-      content:
-        "Great insights on bulk purchasing! This really helped us optimize our gym equipment procurement process.",
-      publishedAt: "2024-08-01",
-      avatar:
-        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
-    },
-    {
-      id: "2",
-      author: "Mike Chen",
-      content:
-        "The ROI calculations you mentioned are spot on. We've seen similar results with our corporate wellness program.",
-      publishedAt: "2024-08-02",
-      avatar:
-        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
-    },
-  ]);
-  const [newComment, setNewComment] = useState<string>("");
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentFormData, setCommentFormData] = useState<CommentFormData>({
+    name: '',
+    email: '',
+    content: ''
+  });
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
-  // Mock blog post data
-  const blogPost: BlogPost = {
-    id: "1",
-    title:
-      "The Complete Guide to Bulk Gym Equipment Purchasing for Corporate Wellness Programs",
-    excerpt:
-      "Learn how to optimize your corporate wellness budget while maximizing employee satisfaction through strategic bulk equipment purchasing.",
-    content: `
-    <p>Corporate wellness programs have become a cornerstone of modern workplace culture, with companies investing billions annually to keep their workforce healthy and productive. One of the most effective strategies for building a comprehensive wellness program is strategic bulk purchasing of gym equipment.</p>
-
-    <h2>Understanding the Corporate Wellness Landscape</h2>
-    <p>The corporate wellness industry has experienced unprecedented growth, with market size reaching $58 billion globally. Companies are recognizing that employee health directly impacts productivity, retention, and overall business success.</p>
-
-    <p>When planning your corporate gym setup, consider these key factors:</p>
-    <ul>
-      <li><strong>Employee Demographics:</strong> Age groups, fitness levels, and preferences</li>
-      <li><strong>Available Space:</strong> Square footage and layout constraints</li>
-      <li><strong>Budget Allocation:</strong> Initial investment vs. long-term maintenance costs</li>
-      <li><strong>Usage Patterns:</strong> Peak hours and equipment rotation</li>
-    </ul>
-
-    <h2>The Economics of Bulk Purchasing</h2>
-    <p>Smart procurement can reduce equipment costs by 30-45% compared to retail purchases. Our data shows that companies ordering 500+ units typically achieve the best price-to-value ratio.</p>
-
-    <blockquote>
-      "We reduced our equipment costs by 40% through strategic bulk purchasing, allowing us to invest the savings in additional wellness programs." - Jennifer Martinez, HR Director at TechCorp
-    </blockquote>
-
-    <h2>Essential Equipment Categories for Corporate Gyms</h2>
-    <p>Based on usage analytics from 200+ corporate installations, here are the most popular equipment categories:</p>
-
-    <h3>1. Cardio Equipment (35% of budget)</h3>
-    <p>Treadmills, ellipticals, and stationary bikes remain the foundation of any corporate gym. These machines accommodate various fitness levels and are perfect for stress relief during lunch breaks.</p>
-
-    <h3>2. Strength Training (30% of budget)</h3>
-    <p>Adjustable dumbbells, resistance bands, and functional trainers provide comprehensive strength training options without requiring extensive space.</p>
-
-    <h3>3. Accessories & Small Equipment (20% of budget)</h3>
-    <p>Yoga mats, resistance bands, kettlebells, and foam rollers are cost-effective additions that maximize versatility.</p>
-
-    <h3>4. Recovery & Wellness (15% of budget)</h3>
-    <p>Massage chairs, stretching areas, and recovery tools help employees unwind and prevent injuries.</p>
-
-    <h2>Implementation Best Practices</h2>
-    <p>Successful corporate gym implementations follow these proven strategies:</p>
-
-    <h3>Phase 1: Assessment and Planning</h3>
-    <p>Conduct employee surveys to understand preferences and usage patterns. This data drives equipment selection and layout decisions.</p>
-
-    <h3>Phase 2: Strategic Procurement</h3>
-    <p>Leverage bulk purchasing power to negotiate better terms. Consider leasing options for expensive cardio equipment to preserve capital.</p>
-
-    <h3>Phase 3: Installation and Training</h3>
-    <p>Professional installation ensures safety and longevity. Staff training programs maximize equipment utilization and minimize maintenance issues.</p>
-
-    <h2>Measuring Success and ROI</h2>
-    <p>Track these key metrics to demonstrate program value:</p>
-    <ul>
-      <li>Employee participation rates (target: 40-60%)</li>
-      <li>Reduced healthcare claims (average: 15-25% decrease)</li>
-      <li>Improved employee satisfaction scores</li>
-      <li>Decreased absenteeism rates</li>
-    </ul>
-
-    <p>Companies typically see full ROI within 18-24 months through reduced healthcare costs and improved productivity.</p>
-
-    <h2>Future Trends in Corporate Wellness</h2>
-    <p>The industry is evolving toward more personalized, technology-integrated solutions. Wearable device integration, AI-powered workout recommendations, and virtual training programs are becoming standard features.</p>
-
-    <p>As we move forward, the most successful corporate wellness programs will be those that combine strategic equipment procurement with comprehensive employee engagement strategies.</p>
-    `,
-    author: {
-      name: "David Rodriguez",
-      role: "Corporate Wellness Specialist",
-      avatar:
-        "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop&crop=face",
-      bio: "David has over 10 years of experience designing corporate wellness programs for Fortune 500 companies. He specializes in equipment procurement and employee engagement strategies.",
-    },
-    publishedAt: "2024-08-04",
-    readTime: 8,
-    category: "Corporate Wellness",
-    tags: [
-      "Bulk Purchasing",
-      "Corporate Gym",
-      "Equipment",
-      "ROI",
-      "Wellness Programs",
-    ],
-    featuredImage:
-      "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
-    relatedPosts: [
-      {
-        id: "2",
-        title: "5 Essential Gym Equipment Pieces Every Corporate Office Needs",
-        excerpt:
-          "Discover the must-have equipment that delivers maximum impact for your corporate wellness program.",
-        image:
-          "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=250&fit=crop",
-        publishedAt: "2024-07-28",
-        readTime: 5,
-      },
-      {
-        id: "3",
-        title:
-          "ROI Calculator: Measuring the Success of Your Corporate Gym Investment",
-        excerpt:
-          "Learn how to calculate and demonstrate the return on investment for your workplace fitness program.",
-        image:
-          "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=250&fit=crop",
-        publishedAt: "2024-07-25",
-        readTime: 6,
-      },
-      {
-        id: "4",
-        title: "Employee Engagement Strategies for Corporate Fitness Programs",
-        excerpt:
-          "Proven tactics to increase participation and maximize the impact of your workplace wellness initiatives.",
-        image:
-          "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=250&fit=crop",
-        publishedAt: "2024-07-22",
-        readTime: 7,
-      },
-    ],
-  };
-
-  const handleCommentSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-
-    const comment: Comment = {
-      id: Date.now().toString(),
-      author: "You",
-      content: newComment,
-      publishedAt: new Date().toISOString().split("T")[0],
-      avatar:
-        "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=face",
+  // Fetch blog post data
+  useEffect(() => {
+    const fetchBlogPost = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch the specific blog post
+        const response = await axios.get(`${Backend_Url}/blogs/${params.id}`);
+        
+        if (response.data.status === "success") {
+          setBlogPost(response.data.data.blog);
+          
+          // Fetch related posts (other blogs from same category, excluding current)
+          const relatedResponse = await axios.get(
+            `${Backend_Url}/blogs?category=${response.data.data.blog.category}&limit=3`
+          );
+          
+          if (relatedResponse.data.status === "success") {
+            const related = relatedResponse.data.data.blogs
+              .filter((blog: any) => blog._id !== params.id)
+              .slice(0, 3)
+              .map((blog: any) => ({
+                id: blog._id,
+                title: blog.title,
+                excerpt: blog.excerpt,
+                image: blog.image,
+                publishedAt: blog.createdAt,
+                readTime: blog.readTime,
+              }));
+            setRelatedPosts(related);
+          }
+        } else {
+          notFound();
+        }
+      } catch (error) {
+        console.error("Error fetching blog post:", error);
+        notFound();
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    setComments([comment, ...comments]);
-    setNewComment("");
+    const fetchComments = async () => {
+      try {
+        setCommentsLoading(true);
+        const response = await axios.get(`${Backend_Url}/comments/blog/${params.id}`);
+        
+        if (response.data.status === 'success') {
+          setComments(response.data.data.comments || []);
+        }
+      } catch (error) {
+        console.error('Error fetching comments:', error);
+      } finally {
+        setCommentsLoading(false);
+      }
+    };
+
+    if (params.id) {
+      fetchBlogPost();
+      fetchComments();
+    }
+  }, [params.id]);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen mt-16 bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Show 404 if no blog post found
+  if (!blogPost) {
+    notFound();
+  }
+
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!commentFormData.name.trim() || !commentFormData.email.trim() || !commentFormData.content.trim()) {
+      return;
+    }
+
+    setIsSubmittingComment(true);
+    
+    try {
+      const response = await axios.post(`${Backend_Url}/comments`, {
+        blogId: params.id,
+        author: {
+          name: commentFormData.name,
+          email: commentFormData.email
+        },
+        content: commentFormData.content
+      });
+      
+      if (response.data.status === 'success') {
+        // Add the new comment to the list
+        setComments([response.data.data.comment, ...comments]);
+        // Reset form
+        setCommentFormData({ name: '', email: '', content: '' });
+      }
+    } catch (error) {
+      console.error('Error submitting comment:', error);
+      alert('Failed to submit comment. Please try again.');
+    } finally {
+      setIsSubmittingComment(false);
+    }
   };
 
   const containerVariants: Variants = {
@@ -241,7 +218,7 @@ const SingleBlogPage: React.FC = () => {
       >
         <div className="absolute inset-0">
           <Image
-            src={blogPost.featuredImage}
+            src={blogPost.image}
             alt={blogPost.title}
             fill
             className="object-cover opacity-30"
@@ -262,11 +239,11 @@ const SingleBlogPage: React.FC = () => {
               </span>
               <span className="text-blue-200">•</span>
               <span className="text-blue-200">
-                {blogPost.readTime} min read
+                {blogPost.readTime}
               </span>
               <span className="text-blue-200">•</span>
               <span className="text-blue-200">
-                {new Date(blogPost.publishedAt).toLocaleDateString("en-US", {
+                {new Date(blogPost.createdAt).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
@@ -307,10 +284,10 @@ const SingleBlogPage: React.FC = () => {
                   {blogPost.author.name}
                 </h3>
                 <p className="text-blue-600 text-sm font-medium">
-                  {blogPost.author.role}
+                  Author
                 </p>
                 <p className="text-gray-600 text-sm mt-1">
-                  {blogPost.author.bio}
+                  {blogPost.author.bio || "Blog contributor"}
                 </p>
               </div>
               <motion.button
@@ -346,6 +323,25 @@ const SingleBlogPage: React.FC = () => {
               />
             </div>
 
+            {/* YouTube Video */}
+            {blogPost.youtubeUrl && extractYouTubeVideoId(blogPost.youtubeUrl) && (
+              <motion.div 
+                className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 mb-8"
+                variants={itemVariants}
+              >
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Related Video</h3>
+                <div className="relative w-full" style={{ paddingBottom: '56.25%' /* 16:9 aspect ratio */ }}>
+                  <iframe
+                    src={getYouTubeEmbedUrl(extractYouTubeVideoId(blogPost.youtubeUrl)!)}
+                    title="YouTube video player"
+                    className="absolute top-0 left-0 w-full h-full rounded-lg border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                </div>
+              </motion.div>
+            )}
+
             {/* Tags */}
             <motion.div className="mb-8" variants={itemVariants}>
               <h3 className="text-lg font-bold text-gray-900 mb-4">Tags</h3>
@@ -372,54 +368,117 @@ const SingleBlogPage: React.FC = () => {
               </h3>
 
               {/* Comment Form */}
-              <form onSubmit={handleCommentSubmit} className="mb-8">
-                <textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Share your thoughts..."
-                  className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                  rows={4}
-                />
+              <form onSubmit={handleCommentSubmit} className="mb-8 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={commentFormData.name}
+                      onChange={(e) => setCommentFormData({ ...commentFormData, name: e.target.value })}
+                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Your name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={commentFormData.email}
+                      onChange={(e) => setCommentFormData({ ...commentFormData, email: e.target.value })}
+                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="your.email@example.com"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Comment *
+                  </label>
+                  <textarea
+                    required
+                    value={commentFormData.content}
+                    onChange={(e) => setCommentFormData({ ...commentFormData, content: e.target.value })}
+                    placeholder="Share your thoughts..."
+                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    rows={4}
+                    maxLength={1000}
+                  />
+                  <div className="text-right text-sm text-gray-500 mt-1">
+                    {commentFormData.content.length}/1000
+                  </div>
+                </div>
                 <motion.button
                   type="submit"
-                  className="mt-4 bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  disabled={isSubmittingComment}
+                  className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  whileHover={{ scale: isSubmittingComment ? 1 : 1.02 }}
+                  whileTap={{ scale: isSubmittingComment ? 1 : 0.98 }}
                 >
-                  <Link href="#comments">Post Comment</Link>
+                  {isSubmittingComment ? 'Posting...' : 'Post Comment'}
                 </motion.button>
               </form>
 
               {/* Comments List */}
               <div className="space-y-6">
-                {comments.map((comment) => (
-                  <motion.div
-                    key={comment.id}
-                    className="flex space-x-4 p-4 bg-gray-50 rounded-xl"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    {/* <Image
-                      src={comment.avatar}
-                      alt={comment.author}
-                      width={40}
-                      height={40}
-                      className="rounded-full"
-                    /> */}
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h4 className="font-semibold text-gray-900">
-                          {comment.author}
-                        </h4>
-                        <span className="text-gray-500 text-sm">
-                          {new Date(comment.publishedAt).toLocaleDateString()}
-                        </span>
+                {commentsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : comments.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No comments yet. Be the first to share your thoughts!</p>
+                  </div>
+                ) : (
+                  comments.map((comment) => (
+                    <motion.div
+                      key={comment._id}
+                      className="flex space-x-4 p-4 bg-gray-50 rounded-xl"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <Image
+                        src={comment.author.avatar}
+                        alt={comment.author.name}
+                        width={40}
+                        height={40}
+                        className="rounded-full"
+                        onError={(e) => {
+                          e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author.name)}&background=3B82F6&color=fff&size=40`;
+                        }}
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h4 className="font-semibold text-gray-900">
+                            {comment.author.name}
+                          </h4>
+                          <span className="text-gray-500 text-sm">
+                            {new Date(comment.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                          {comment.status === 'pending' && (
+                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                              Pending
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-gray-700">{comment.content}</p>
                       </div>
-                      <p className="text-gray-700">{comment.content}</p>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))
+                )}
               </div>
             </motion.div>
           </motion.article>
@@ -455,35 +514,36 @@ const SingleBlogPage: React.FC = () => {
                 Related Articles
               </h3>
               <div className="space-y-6">
-                {blogPost.relatedPosts.map((post) => (
-                  <motion.div
-                    key={post.id}
-                    className="group cursor-pointer"
-                    whileHover={{ y: -2 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <div className="relative h-32 rounded-xl overflow-hidden mb-3">
-                      <Image
-                        src={post.image}
-                        alt={post.title}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                    <h4 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200 line-clamp-2">
-                      {post.title}
-                    </h4>
-                    <p className="text-gray-600 text-sm mt-1 line-clamp-2">
-                      {post.excerpt}
-                    </p>
-                    <div className="flex items-center space-x-2 mt-2 text-xs text-gray-500">
-                      <span>
-                        {new Date(post.publishedAt).toLocaleDateString()}
-                      </span>
-                      <span>•</span>
-                      <span>{post.readTime} min read</span>
-                    </div>
-                  </motion.div>
+                {relatedPosts.map((post) => (
+                  <Link key={post.id} href={`/blog/${post.id}`}>
+                    <motion.div
+                      className="group cursor-pointer"
+                      whileHover={{ y: -2 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div className="relative h-32 rounded-xl overflow-hidden mb-3">
+                        <Image
+                          src={post.image}
+                          alt={post.title}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                      <h4 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200 line-clamp-2">
+                        {post.title}
+                      </h4>
+                      <p className="text-gray-600 text-sm mt-1 line-clamp-2">
+                        {post.excerpt}
+                      </p>
+                      <div className="flex items-center space-x-2 mt-2 text-xs text-gray-500">
+                        <span>
+                          {new Date(post.publishedAt).toLocaleDateString()}
+                        </span>
+                        <span>•</span>
+                        <span>{post.readTime}</span>
+                      </div>
+                    </motion.div>
+                  </Link>
                 ))}
               </div>
             </div>

@@ -115,11 +115,8 @@ const seedDatabase = async () => {
 
     // Create users
     console.log("Creating sample users...");
-    const hashedUsers = sampleUsers.map((user) => ({
-      ...user,
-      password: bcrypt.hashSync(user.password, 10), // Hash passwords
-    }));
-    const createdUsers = await User.create(hashedUsers);
+    // Let the User model's pre-save hook handle password hashing
+    const createdUsers = await User.create(sampleUsers);
     console.log(`Created ${createdUsers.length} users`);
 
     // Create products
