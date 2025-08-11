@@ -13,17 +13,22 @@ import {
   Minus,
 } from "lucide-react";
 import { Variants, motion } from "framer-motion";
+import axios, { AxiosError } from "axios";
+import { Product, BackendResponse } from "@/types/Products";
+import { useCart } from "@/context/CartContext";
 
-interface ProductImage {
-  id: number;
-  url: string;
-  alt: string;
-}
+const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-interface ProductSpec {
-  label: string;
-  value: string;
-}
+// interface ProductImage {
+//   id: number;
+//   url: string;
+//   alt: string;
+// }
+
+// interface ProductSpec {
+//   label: string;
+//   value: string;
+// }
 
 interface PageProps {
   params: Promise<{
@@ -37,82 +42,118 @@ export default function SingleProductPage({ params }: PageProps) {
   const [quantity, setQuantity] = useState(1);
   const [selectedTab, setSelectedTab] = useState("description");
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [product, setProduct] = useState<Product | null>(null);
+  const { addItem } = useCart();
 
   // Sample product data
-  const product = {
-    id: id,
-    name: "Commercial Treadmill Pro X1",
-    category: "Cardio Equipment",
-    brand: "FitnessPro",
-    sku: "FP-TM-PRO-X1",
-    price: 3299,
-    originalPrice: 4199,
-    inStock: true,
-    stockCount: 24,
-    description:
-      "The Commercial Treadmill Pro X1 is engineered for high-traffic commercial environments. Featuring a powerful 15HP motor, advanced cushioning system, and intuitive touchscreen display, this treadmill delivers exceptional performance and durability for your fitness facility.",
-    features: [
-      "15HP Continuous Duty Motor",
-      '22" HD Touchscreen Display',
-      "Advanced Cushioning System",
-      "Heart Rate Monitoring",
-      "Bluetooth Connectivity",
-      "USB Charging Ports",
-      "Emergency Stop System",
-      "Commercial Grade Construction",
-    ],
-    specifications: [
-      { label: "Motor Power", value: "15HP Continuous Duty" },
-      { label: "Speed Range", value: "0.5 - 12 MPH" },
-      { label: "Incline Range", value: "0 - 15%" },
-      { label: "Running Surface", value: '22" x 60"' },
-      { label: "Maximum User Weight", value: "400 lbs" },
-      { label: "Dimensions", value: '85" L x 37" W x 65" H' },
-      { label: "Weight", value: "425 lbs" },
-      { label: "Warranty", value: "5 Years Parts, 2 Years Labor" },
-    ],
-    images: [
-      {
-        id: 1,
-        url: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&h=300&fit=crop",
-        alt: "Treadmill Front View",
-      },
-      {
-        id: 2,
-        url: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop",
-        alt: "Console Display",
-      },
-      {
-        id: 3,
-        url: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop",
-        alt: "Side Profile",
-      },
-      {
-        id: 4,
-        url: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&h=300&fit=crop",
-        alt: "Motor Assembly",
-      },
-    ],
-    bulkPricing: [
-      { quantity: "1-4 units", price: 3299, savings: 0 },
-      { quantity: "5-9 units", price: 3099, savings: 200 },
-      { quantity: "10-19 units", price: 2899, savings: 400 },
-      { quantity: "20+ units", price: 2699, savings: 600 },
-    ],
-  };
+  // const product = {
+  //   id: id,
+  //   name: "Commercial Treadmill Pro X1",
+  //   category: "Cardio Equipment",
+  //   brand: "FitnessPro",
+  //   sku: "FP-TM-PRO-X1",
+  //   price: 3299,
+  //   originalPrice: 4199,
+  //   stock: true,
+  //   stockCount: 24,
+  //   description:
+  //     "The Commercial Treadmill Pro X1 is engineered for high-traffic commercial environments. Featuring a powerful 15HP motor, advanced cushioning system, and intuitive touchscreen display, this treadmill delivers exceptional performance and durability for your fitness facility.",
+  //   features: [
+  //     "15HP Continuous Duty Motor",
+  //     '22" HD Touchscreen Display',
+  //     "Advanced Cushioning System",
+  //     "Heart Rate Monitoring",
+  //     "Bluetooth Connectivity",
+  //     "USB Charging Ports",
+  //     "Emergency Stop System",
+  //     "Commercial Grade Construction",
+  //   ],
+  //   specifications: [
+  //     { label: "Motor Power", value: "15HP Continuous Duty" },
+  //     { label: "Speed Range", value: "0.5 - 12 MPH" },
+  //     { label: "Incline Range", value: "0 - 15%" },
+  //     { label: "Running Surface", value: '22" x 60"' },
+  //     { label: "Maximum User Weight", value: "400 lbs" },
+  //     { label: "Dimensions", value: '85" L x 37" W x 65" H' },
+  //     { label: "Weight", value: "425 lbs" },
+  //     { label: "Warranty", value: "5 Years Parts, 2 Years Labor" },
+  //   ],
+  //   images: [
+  //     {
+  //       id: 1,
+  //       url: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&h=300&fit=crop",
+  //       alt: "Treadmill Front View",
+  //     },
+  //     {
+  //       id: 2,
+  //       url: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop",
+  //       alt: "Console Display",
+  //     },
+  //     {
+  //       id: 3,
+  //       url: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop",
+  //       alt: "Side Profile",
+  //     },
+  //     {
+  //       id: 4,
+  //       url: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&h=300&fit=crop",
+  //       alt: "Motor Assembly",
+  //     },
+  //   ],
+  //   bulkPricing: [
+  //     { quantity: "1-4 units", price: 3299, savings: 0 },
+  //     { quantity: "5-9 units", price: 3099, savings: 200 },
+  //     { quantity: "10-19 units", price: 2899, savings: 400 },
+  //     { quantity: "20+ units", price: 2699, savings: 600 },
+  //   ],
+  // };
+
+  // Fetch product data from API
+  React.useEffect(() => {
+    const fetchProductById = async () => {
+      try {
+        const response = await axios.get<Product>(
+          `${backendUrl}/products/${id}`
+        );
+        const productData = response.data.data.product; // Assuming the API returns an array of products
+        setProduct(productData);
+        console.log("Fetched product:", productData);
+      } catch (error) {
+        console.error("Error fetching product:", error);
+        setProduct(null);
+      }
+    };
+    fetchProductById();
+  }, [id]);
 
   const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
+    if (product?.images && product.images.length > 0) {
+      setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
+    }
   };
 
   const prevImage = () => {
-    setCurrentImageIndex(
-      (prev) => (prev - 1 + product.images.length) % product.images.length
-    );
+    if (product?.images && product.images.length > 0) {
+      setCurrentImageIndex(
+        (prev) => (prev - 1 + product.images.length) % product.images.length
+      );
+    }
   };
 
   const updateQuantity = (change: number) => {
     setQuantity((prev) => Math.max(1, prev + change));
+  };
+
+  const handleAddToCart = () => {
+    if (product) {
+      addItem({
+        id: product._id,
+        name: product.name,
+        price: product.price,
+        imageUrl: product.images[currentImageIndex],
+       },);
+      console.log("Added to cart:", { ...product, quantity });
+    }
   };
 
   // Animation variants
@@ -192,15 +233,15 @@ export default function SingleProductPage({ params }: PageProps) {
             </Link>
             <ChevronRight className="w-4 h-4" />
             <Link
-              href={`/collections/${product.category
+              href={`/collections/${product?.category
                 .toLowerCase()
                 .replace(" ", "-")}`}
               className="hover:text-blue-600 transition-colors"
             >
-              {product.category}
+              {product?.category}
             </Link>
             <ChevronRight className="w-4 h-4" />
-            <span className="text-gray-900 font-medium">{product.name}</span>
+            <span className="text-gray-900 font-medium">{product?.name}</span>
           </div>
         </motion.nav>
 
@@ -213,8 +254,11 @@ export default function SingleProductPage({ params }: PageProps) {
                 <Image
                   width={400}
                   height={400}
-                  src={product.images[currentImageIndex].url}
-                  alt={product.images[currentImageIndex].alt}
+                  src={
+                    product?.images?.[currentImageIndex] ||
+                    "/placeholder-product.jpg"
+                  }
+                  alt={`${product?.name} - Image ${currentImageIndex + 1}`}
                   className="w-full h-full object-cover"
                 />
 
@@ -262,9 +306,9 @@ export default function SingleProductPage({ params }: PageProps) {
 
             {/* Thumbnail Images */}
             <div className="flex space-x-4">
-              {product.images.map((image, index) => (
+              {product?.images?.map((imageUrl, index) => (
                 <motion.button
-                  key={image.id}
+                  key={index}
                   onClick={() => setCurrentImageIndex(index)}
                   className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
                     currentImageIndex === index
@@ -275,10 +319,10 @@ export default function SingleProductPage({ params }: PageProps) {
                   whileTap={{ scale: 0.95 }}
                 >
                   <Image
-                    width={400}
-                    height={400}
-                    src={image.url}
-                    alt={image.alt}
+                    width={80}
+                    height={80}
+                    src={imageUrl}
+                    alt={`${product.name} - Thumbnail ${index + 1}`}
                     className="w-full h-full object-cover"
                   />
                 </motion.button>
@@ -291,29 +335,30 @@ export default function SingleProductPage({ params }: PageProps) {
             {/* Product Title and Price */}
             <div className="space-y-2">
               <h1 className="text-3xl font-bold text-gray-900">
-                {product.name}
+                {product?.name}
               </h1>
+              <h1 className="text-xl text-gray-500">{product?.description}</h1>
               <div className="flex items-center space-x-2">
                 <span className="text-xl font-semibold text-blue-600">
-                  ${product.price.toFixed(2)}
+                  ${product?.price.toFixed(2)}
                 </span>
               </div>
-              <div className="text-sm text-gray-600">
+              {/* <div className="text-sm text-gray-600">
                 <span
                   className={`font-semibold ${
-                    product.inStock ? "text-green-600" : "text-red-600"
+                    product?.stock ? "text-green-600" : "text-red-600"
                   }`}
                 >
-                  {product.inStock ? "In Stock" : "Out of Stock"}
+                  {product?.stock ? "In Stock" : "Out of Stock"}
                 </span>
-                {product.inStock && (
-                  <span className="ml-2">({product.stockCount} available)</span>
+                {product?.stock && (
+                  <span className="ml-2">({product?.stockCount} available)</span>
                 )}
-              </div>
+              </div> */}
             </div>
 
             {/* Quantity Selector */}
-            {product.inStock && (
+            {product?.stock && (
               <div className="flex items-center space-x-4">
                 <span className="text-lg font-semibold">Quantity:</span>
                 <div className="flex items-center space-x-2">
@@ -340,11 +385,12 @@ export default function SingleProductPage({ params }: PageProps) {
             {/* Add to Cart Button */}
             <motion.button
               className={`w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center space-x-2 ${
-                !product.inStock ? "opacity-50 cursor-not-allowed" : ""
+                !product?.stock ? "opacity-50 cursor-not-allowed" : ""
               }`}
-              disabled={!product.inStock}
+              disabled={!product?.stock}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              onClick={handleAddToCart}
             >
               <ShoppingCart className="w-5 h-5" />
               <span>Add to Cart</span>
@@ -404,17 +450,17 @@ export default function SingleProductPage({ params }: PageProps) {
                     initial="hidden"
                     animate="visible"
                   >
-                    {product.description}
+                    {product?.description}
                   </motion.p>
                 )}
-                {selectedTab === "features" && (
+                {/* {selectedTab === "features" && (
                   <motion.ul
                     className="list-disc pl-5 space-y-2 text-gray-700"
                     variants={fadeInUp}
                     initial="hidden"
                     animate="visible"
                   >
-                    {product.features.map((feature, index) => (
+                    {product?.features.map((feature, index) => (
                       <li key={index}>{feature}</li>
                     ))}
                   </motion.ul>
@@ -437,7 +483,7 @@ export default function SingleProductPage({ params }: PageProps) {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {product.specifications.map((spec, index) => (
+                      {product?.specifications.map((spec, index) => (
                         <tr key={index}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {spec.label}
@@ -471,7 +517,7 @@ export default function SingleProductPage({ params }: PageProps) {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {product.bulkPricing.map((pricing, index) => (
+                      {product?.bulkPricing.map((pricing, index) => (
                         <tr key={index}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {pricing.quantity}
@@ -488,7 +534,7 @@ export default function SingleProductPage({ params }: PageProps) {
                       ))}
                     </tbody>
                   </motion.table>
-                )}
+                )} */}
               </div>
             </div>
           </motion.div>

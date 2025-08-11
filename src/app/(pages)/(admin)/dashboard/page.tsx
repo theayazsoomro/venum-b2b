@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import Image from "next/image";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { Product, BackendResponse } from "@/types/Products";
 
 const Backend_Url = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -28,7 +28,9 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [sortBy, setSortBy] = useState<"name" | "price" | "stock" | "createdAt">("createdAt");
+  const [sortBy, setSortBy] = useState<
+    "name" | "price" | "stock" | "createdAt"
+  >("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(10);
@@ -93,7 +95,9 @@ const AdminDashboard = () => {
   };
 
   // Handle file selection with validation
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const files = Array.from(event.target.files || []);
     const currentImageCount = formData.images.length + selectedFiles.length;
     const remainingSlots = 5 - currentImageCount;
@@ -135,7 +139,9 @@ const AdminDashboard = () => {
 
     // Convert files to base64 and add to form data
     try {
-      const base64Images = await Promise.all(validFiles.map((file) => fileToBase64(file)));
+      const base64Images = await Promise.all(
+        validFiles.map((file) => fileToBase64(file))
+      );
 
       setFormData((prev) => ({
         ...prev,
@@ -171,7 +177,9 @@ const AdminDashboard = () => {
   const fetchProducts = async () => {
     try {
       setIsLoadingProducts(true);
-      const response = await axios.get<BackendResponse>(`${Backend_Url}/products`);
+      const response = await axios.get<BackendResponse>(
+        `${Backend_Url}/products`
+      );
       const productsData = response.data.data.products || [];
       setProducts(productsData);
       setFilteredProducts(productsData);
@@ -208,7 +216,9 @@ const AdminDashboard = () => {
     }
 
     if (categoryFilter !== "all") {
-      filtered = filtered.filter((product) => product.category === categoryFilter);
+      filtered = filtered.filter(
+        (product) => product.category === categoryFilter
+      );
     }
 
     if (statusFilter !== "all") {
@@ -246,44 +256,52 @@ const AdminDashboard = () => {
     try {
       const authAxios = createAuthAxios();
       const response = await authAxios.post("/products", productData);
-      
+
       if (response.data.status === "success") {
         return response.data.data.product;
       } else {
         throw new Error(response.data.message || "Failed to create product");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating product:", error);
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      } else if (error.response?.data?.errors) {
-        throw new Error(error.response.data.errors.join(", "));
-      } else {
-        throw new Error("Failed to create product");
+      if (axios.isAxiosError(error)) {
+        if (error.response?.data?.message) {
+          throw new Error(error.response.data.message);
+        } else if (error.response?.data?.errors) {
+          throw new Error(error.response.data.errors.join(", "));
+        }
       }
+      throw new Error("Failed to create product");
     }
   };
 
   // Update product via API
-  const updateProduct = async (productId: string, productData: ProductFormData) => {
+  const updateProduct = async (
+    productId: string,
+    productData: ProductFormData
+  ) => {
     try {
       const authAxios = createAuthAxios();
-      const response = await authAxios.put(`/products/${productId}`, productData);
-      
+      const response = await authAxios.put(
+        `/products/${productId}`,
+        productData
+      );
+
       if (response.data.status === "success") {
         return response.data.data.product;
       } else {
         throw new Error(response.data.message || "Failed to update product");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating product:", error);
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      } else if (error.response?.data?.errors) {
-        throw new Error(error.response.data.errors.join(", "));
-      } else {
-        throw new Error("Failed to update product");
+      if (axios.isAxiosError(error)) {
+        if (error.response?.data?.message) {
+          throw new Error(error.response.data.message);
+        } else if (error.response?.data?.errors) {
+          throw new Error(error.response.data.errors.join(", "));
+        }
       }
+      throw new Error("Failed to update product");
     }
   };
 
@@ -292,61 +310,70 @@ const AdminDashboard = () => {
     try {
       const authAxios = createAuthAxios();
       const response = await authAxios.delete(`/products/${productId}`);
-      
+
       if (response.data.status === "success") {
         return true;
       } else {
         throw new Error(response.data.message || "Failed to delete product");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting product:", error);
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      } else {
-        throw new Error("Failed to delete product");
+      if (axios.isAxiosError(error)) {
+        if (error.response?.data?.message) {
+          throw new Error(error.response.data.message);
+        } else if (error.response?.data?.errors) {
+          throw new Error(error.response.data.errors.join(", "));
+        }
       }
+      throw new Error("Failed to delete product");
     }
   };
 
   // Get single product via API (if needed for detailed view)
-  const getProductById = async (productId: string) => {
-    try {
-      const response = await axios.get(`${Backend_Url}/products/${productId}`);
-      if (response.data.status === "success") {
-        return response.data.data.product;
-      } else {
-        throw new Error(response.data.message || "Failed to fetch product");
-      }
-    } catch (error: any) {
-      console.error("Error fetching product:", error);
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      } else {
-        throw new Error("Failed to fetch product");
-      }
-    }
-  };
+  // const getProductById = async (productId: string) => {
+  //   try {
+  //     const response = await axios.get(`${Backend_Url}/products/${productId}`);
+  //     if (response.data.status === "success") {
+  //       return response.data.data.product;
+  //     } else {
+  //       throw new Error(response.data.message || "Failed to fetch product");
+  //     }
+  //   } catch (error: any) {
+  //     console.error("Error fetching product:", error);
+  //     if (error.response?.data?.message) {
+  //       throw new Error(error.response.data.message);
+  //     } else {
+  //       throw new Error("Failed to fetch product");
+  //     }
+  //   }
+  // };
 
   // Get products by category via API (if needed)
-  const getProductsByCategory = async (category: string, page = 1, limit = 10) => {
-    try {
-      const response = await axios.get(
-        `${Backend_Url}/products/category/${category}?page=${page}&limit=${limit}`
-      );
-      if (response.data.status === "success") {
-        return response.data.data;
-      } else {
-        throw new Error(response.data.message || "Failed to fetch products by category");
-      }
-    } catch (error: any) {
-      console.error("Error fetching products by category:", error);
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      } else {
-        throw new Error("Failed to fetch products by category");
-      }
-    }
-  };
+  // const getProductsByCategory = async (
+  //   category: string,
+  //   page = 1,
+  //   limit = 10
+  // ) => {
+  //   try {
+  //     const response = await axios.get(
+  //       `${Backend_Url}/products/category/${category}?page=${page}&limit=${limit}`
+  //     );
+  //     if (response.data.status === "success") {
+  //       return response.data.data;
+  //     } else {
+  //       throw new Error(
+  //         response.data.message || "Failed to fetch products by category"
+  //       );
+  //     }
+  //   } catch (error: any) {
+  //     console.error("Error fetching products by category:", error);
+  //     if (error.response?.data?.message) {
+  //       throw new Error(error.response.data.message);
+  //     } else {
+  //       throw new Error("Failed to fetch products by category");
+  //     }
+  //   }
+  // };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -355,13 +382,16 @@ const AdminDashboard = () => {
     try {
       if (editingProduct) {
         // Update existing product
-        const updatedProduct = await updateProduct(editingProduct._id, formData);
-        
+        const updatedProduct = await updateProduct(
+          editingProduct._id,
+          formData
+        );
+
         // Update local state
         setProducts((prev) =>
           prev.map((p) => (p._id === editingProduct._id ? updatedProduct : p))
         );
-        
+
         setMessage({
           type: "success",
           content: "Product updated successfully!",
@@ -369,10 +399,10 @@ const AdminDashboard = () => {
       } else {
         // Create new product
         const newProduct = await createProduct(formData);
-        
+
         // Add to local state
         setProducts((prev) => [...prev, newProduct]);
-        
+
         setMessage({
           type: "success",
           content: "Product created successfully!",
@@ -381,11 +411,13 @@ const AdminDashboard = () => {
 
       resetForm();
       setTimeout(() => setMessage({ type: "", content: "" }), 3000);
-    } catch (error: any) {
-      console.error("Error saving product:", error);
-      setMessage({ 
-        type: "error", 
-        content: error.message || "Something went wrong!" 
+    } catch (error: unknown) {
+      console.error("Error submitting product:", error);
+      setMessage({
+        type: "error",
+        content:
+          (error as AxiosError).response?.data?.message ||
+          "Failed to submit product",
       });
       setTimeout(() => setMessage({ type: "", content: "" }), 5000);
     } finally {
@@ -396,7 +428,8 @@ const AdminDashboard = () => {
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
 
-    const productImages = product.images || (product.imageUrl ? [product.imageUrl] : []);
+    const productImages =
+      product.images || (product.imageUrl ? [product.imageUrl] : []);
 
     setFormData({
       name: product.name,
@@ -420,20 +453,22 @@ const AdminDashboard = () => {
       try {
         setIsLoading(true);
         await deleteProduct(id);
-        
+
         // Remove from local state
         setProducts((prev) => prev.filter((p) => p._id !== id));
-        
-        setMessage({ 
-          type: "success", 
-          content: "Product deleted successfully!" 
+
+        setMessage({
+          type: "success",
+          content: "Product deleted successfully!",
         });
         setTimeout(() => setMessage({ type: "", content: "" }), 3000);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Error deleting product:", error);
-        setMessage({ 
-          type: "error", 
-          content: error.message || "Failed to delete product" 
+        setMessage({
+          type: "error",
+          content:
+            (error as AxiosError).response?.data?.message ||
+            "Failed to delete product",
         });
         setTimeout(() => setMessage({ type: "", content: "" }), 5000);
       } finally {
@@ -502,6 +537,29 @@ const AdminDashboard = () => {
     },
   };
 
+  // Check if user is admin
+  const isAdmin = localStorage.getItem("role") === "admin";
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Access Denied
+          </h1>
+          <p className="text-gray-600">
+            You do not have permission to view this page.
+          </p>
+          <button
+            onClick={() => (window.location.href = "/login")}
+            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 mt-16">
       {/* Header */}
@@ -509,7 +567,9 @@ const AdminDashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Admin Dashboard
+              </h1>
               <p className="text-gray-600">Manage your product inventory</p>
             </div>
             <div>
@@ -554,19 +614,27 @@ const AdminDashboard = () => {
               animate="visible"
               className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
             >
-              <motion.div variants={itemVariants} className="bg-white rounded-lg shadow-sm p-6">
+              <motion.div
+                variants={itemVariants}
+                className="bg-white rounded-lg shadow-sm p-6"
+              >
                 <div className="flex items-center">
                   <div className="p-2 bg-blue-100 rounded-lg">
                     <span className="text-2xl">📦</span>
                   </div>
                   <div className="ml-4">
                     <p className="text-sm text-gray-600">Total Products</p>
-                    <p className="text-2xl font-bold text-gray-900">{products.length}</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {products.length}
+                    </p>
                   </div>
                 </div>
               </motion.div>
 
-              <motion.div variants={itemVariants} className="bg-white rounded-lg shadow-sm p-6">
+              <motion.div
+                variants={itemVariants}
+                className="bg-white rounded-lg shadow-sm p-6"
+              >
                 <div className="flex items-center">
                   <div className="p-2 bg-green-100 rounded-lg">
                     <span className="text-2xl">✅</span>
@@ -580,7 +648,10 @@ const AdminDashboard = () => {
                 </div>
               </motion.div>
 
-              <motion.div variants={itemVariants} className="bg-white rounded-lg shadow-sm p-6">
+              <motion.div
+                variants={itemVariants}
+                className="bg-white rounded-lg shadow-sm p-6"
+              >
                 <div className="flex items-center">
                   <div className="p-2 bg-orange-100 rounded-lg">
                     <span className="text-2xl">📊</span>
@@ -590,26 +661,6 @@ const AdminDashboard = () => {
                     <p className="text-2xl font-bold text-gray-900">
                       {products.filter((p) => p.stock < 10).length}
                     </p>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div variants={itemVariants} className="bg-white rounded-lg shadow-sm p-6">
-                <div className="flex items-center">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <span className="text-2xl">🔄</span>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm text-gray-600">Refresh Data</p>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={fetchProducts}
-                      disabled={isLoadingProducts}
-                      className="text-sm bg-purple-600 text-white px-3 py-1 rounded-md hover:bg-purple-700 disabled:opacity-50"
-                    >
-                      {isLoadingProducts ? "Loading..." : "Refresh"}
-                    </motion.button>
                   </div>
                 </div>
               </motion.div>
@@ -637,7 +688,9 @@ const AdminDashboard = () => {
             <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Search
+                  </label>
                   <input
                     type="text"
                     value={searchTerm}
@@ -648,7 +701,9 @@ const AdminDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category
+                  </label>
                   <select
                     value={categoryFilter}
                     onChange={(e) => setCategoryFilter(e.target.value)}
@@ -664,7 +719,9 @@ const AdminDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
@@ -677,12 +734,20 @@ const AdminDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Sort By
+                  </label>
                   <div className="flex space-x-2">
                     <select
                       value={sortBy}
                       onChange={(e) =>
-                        setSortBy(e.target.value as "name" | "price" | "stock" | "createdAt")
+                        setSortBy(
+                          e.target.value as
+                            | "name"
+                            | "price"
+                            | "stock"
+                            | "createdAt"
+                        )
                       }
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
@@ -692,7 +757,9 @@ const AdminDashboard = () => {
                       <option value="stock">Stock</option>
                     </select>
                     <button
-                      onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                      onClick={() =>
+                        setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                      }
                       className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                     >
                       {sortOrder === "asc" ? "↑" : "↓"}
@@ -703,7 +770,8 @@ const AdminDashboard = () => {
 
               <div className="flex justify-between items-center text-sm text-gray-600">
                 <span>
-                  Showing {startIndex + 1}-{Math.min(endIndex, filteredProducts.length)} of{" "}
+                  Showing {startIndex + 1}-
+                  {Math.min(endIndex, filteredProducts.length)} of{" "}
                   {filteredProducts.length} products
                 </span>
                 <button
@@ -776,15 +844,19 @@ const AdminDashboard = () => {
                                   height={48}
                                   className="h-12 w-12 rounded-lg object-cover cursor-pointer"
                                   onError={(e) => {
-                                    e.currentTarget.src = "/placeholder-product.jpg";
+                                    e.currentTarget.src =
+                                      "/placeholder-product.jpg";
                                   }}
-                                  onClick={() => setShowImageGallery(product._id)}
+                                  onClick={() =>
+                                    setShowImageGallery(product._id)
+                                  }
                                 />
-                                {product.images && product.images.length > 1 && (
-                                  <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                                    {product.images.length}
-                                  </div>
-                                )}
+                                {product.images &&
+                                  product.images.length > 1 && (
+                                    <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                      {product.images.length}
+                                    </div>
+                                  )}
                               </div>
                               <div className="ml-4">
                                 <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
@@ -793,14 +865,17 @@ const AdminDashboard = () => {
                                 <div className="text-sm text-gray-500 max-w-xs truncate">
                                   {product.description}
                                 </div>
-                                {product.images && product.images.length > 1 && (
-                                  <button
-                                    onClick={() => setShowImageGallery(product._id)}
-                                    className="text-xs text-blue-600 hover:text-blue-800"
-                                  >
-                                    View all {product.images.length} images
-                                  </button>
-                                )}
+                                {product.images &&
+                                  product.images.length > 1 && (
+                                    <button
+                                      onClick={() =>
+                                        setShowImageGallery(product._id)
+                                      }
+                                      className="text-xs text-blue-600 hover:text-blue-800"
+                                    >
+                                      View all {product.images.length} images
+                                    </button>
+                                  )}
                               </div>
                             </div>
                           </td>
@@ -817,16 +892,21 @@ const AdminDashboard = () => {
                               <span className="text-lg font-bold text-gray-900">
                                 ${product.price.toLocaleString()}
                               </span>
-                              {product.originalPrice && product.originalPrice > product.price && (
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-sm text-gray-500 line-through">
-                                    ${product.originalPrice.toLocaleString()}
-                                  </span>
-                                  <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
-                                    {calculateDiscount(product.price, product.originalPrice)}% OFF
-                                  </span>
-                                </div>
-                              )}
+                              {product.originalPrice &&
+                                product.originalPrice > product.price && (
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-sm text-gray-500 line-through">
+                                      ${product.originalPrice.toLocaleString()}
+                                    </span>
+                                    <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                                      {calculateDiscount(
+                                        product.price,
+                                        product.originalPrice
+                                      )}
+                                      % OFF
+                                    </span>
+                                  </div>
+                                )}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -891,14 +971,20 @@ const AdminDashboard = () => {
                     </div>
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                        onClick={() =>
+                          setCurrentPage((prev) => Math.max(1, prev - 1))
+                        }
                         disabled={currentPage === 1}
                         className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Previous
                       </button>
                       <button
-                        onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                        onClick={() =>
+                          setCurrentPage((prev) =>
+                            Math.min(totalPages, prev + 1)
+                          )
+                        }
                         disabled={currentPage === totalPages}
                         className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -956,19 +1042,25 @@ const AdminDashboard = () => {
                       type="text"
                       required
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       placeholder="Enter product name"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">SKU *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      SKU *
+                    </label>
                     <input
                       type="text"
                       required
                       value={formData.sku}
-                      onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, sku: e.target.value })
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       placeholder="e.g., PRD-001"
                     />
@@ -983,7 +1075,9 @@ const AdminDashboard = () => {
                     rows={3}
                     required
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="Detailed product description"
                   />
@@ -997,7 +1091,9 @@ const AdminDashboard = () => {
                     <select
                       required
                       value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, category: e.target.value })
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Select category</option>
@@ -1021,13 +1117,17 @@ const AdminDashboard = () => {
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          originalPrice: e.target.value ? parseFloat(e.target.value) : undefined,
+                          originalPrice: e.target.value
+                            ? parseFloat(e.target.value)
+                            : undefined,
                         })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       placeholder="0.00"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Leave empty if no discount</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Leave empty if no discount
+                    </p>
                   </div>
 
                   <div>
@@ -1049,15 +1149,22 @@ const AdminDashboard = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       placeholder="0.00"
                     />
-                    {formData.originalPrice && formData.originalPrice > formData.price && (
-                      <p className="text-xs text-green-600 mt-1">
-                        {calculateDiscount(formData.price, formData.originalPrice)}% discount
-                      </p>
-                    )}
+                    {formData.originalPrice &&
+                      formData.originalPrice > formData.price && (
+                        <p className="text-xs text-green-600 mt-1">
+                          {calculateDiscount(
+                            formData.price,
+                            formData.originalPrice
+                          )}
+                          % discount
+                        </p>
+                      )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Stock *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Stock *
+                    </label>
                     <input
                       type="number"
                       min="0"
@@ -1095,7 +1202,9 @@ const AdminDashboard = () => {
                     <label
                       htmlFor="imageUpload"
                       className={`cursor-pointer ${
-                        formData.images.length >= 5 ? "cursor-not-allowed opacity-50" : ""
+                        formData.images.length >= 5
+                          ? "cursor-not-allowed opacity-50"
+                          : ""
                       }`}
                     >
                       <div className="text-gray-400 mb-2">
@@ -1153,7 +1262,9 @@ const AdminDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Status *
+                  </label>
                   <select
                     required
                     value={formData.status}
@@ -1219,7 +1330,9 @@ const AdminDashboard = () => {
               onClick={(e) => e.stopPropagation()}
             >
               {(() => {
-                const product = products.find((p) => p._id === showImageGallery);
+                const product = products.find(
+                  (p) => p._id === showImageGallery
+                );
                 if (!product) return null;
 
                 return (
@@ -1266,7 +1379,7 @@ const AdminDashboard = () => {
 
       {/* Global Loading Overlay */}
       {isLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-xl">
             <div className="flex items-center space-x-3">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>

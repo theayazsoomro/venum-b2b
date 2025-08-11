@@ -11,6 +11,7 @@ const app = express();
 // Import routes
 import productRoutes from "./routes/productRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import auth from "./middleware/auth.js";
 
 // Middleware
 app.use(morgan("dev"));

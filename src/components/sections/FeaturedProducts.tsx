@@ -10,9 +10,11 @@ import {
 } from "lucide-react";
 import * as motion from "motion/react-client";
 import Image from "next/image";
-import { Products } from "@/data/Products";
-import { Product } from "@/constants/Product";
+import { Product, BackendResponse } from "@/types/Products";
 import { useCart } from "@/context/CartContext";
+import axios, { AxiosError } from "axios";
+
+const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 interface FeaturedProductsProps {
   title: string;
@@ -25,11 +27,24 @@ function FeaturedProducts({
 }: FeaturedProductsProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
-  // const [product, setProduct] = useState<Product | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
   const { addItem } = useCart();
 
-  // products data
-  const products: Product[] = Products;
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await axios.get<BackendResponse>(
+          `${backendUrl}/products`
+        );
+        const productsData = response.data.data.products || [];
+        setProducts(productsData);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   // Function to handle adding product to cart
   const handleAddToCart = (product: Product) => {
@@ -37,7 +52,7 @@ function FeaturedProducts({
       id: product._id,
       name: product.name,
       price: product.price,
-      imageUrl: product.image,
+      imageUrl: product.images[0] || product.imageUrl || "",
     });
   };
 
@@ -191,7 +206,7 @@ function FeaturedProducts({
                     <Link href={`/product/${product._id}`}>
                       <div className="relative mb-1 overflow-hidden rounded-tr-xl rounded-tl-xl">
                         <Image
-                          src={product.image}
+                          src={product.images[0] || product.imageUrl || ""}
                           alt={product.name}
                           width={200}
                           height={200}
