@@ -14,7 +14,6 @@ import authRoutes from "./routes/authRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
-import auth from "./middleware/auth.js";
 import contactRoutes from "./routes/contactRoute.js";
 
 // Middleware

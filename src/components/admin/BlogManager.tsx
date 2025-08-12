@@ -220,6 +220,7 @@ const BlogManager = () => {
       const blogDataWithReadTime = {
         ...formData,
         readTime: calculatedReadTime,
+        youtubeUrl: formData.youtubeUrl?.trim() || null,
       };
       
       if (editingBlog) {
@@ -238,6 +239,9 @@ const BlogManager = () => {
           content: "Blog created successfully!",
         });
       }
+
+      console.log('YouTube URL being sent:', blogDataWithReadTime.youtubeUrl);
+      console.log('Full blog data:', blogDataWithReadTime);
 
       resetForm();
       await fetchBlogs();

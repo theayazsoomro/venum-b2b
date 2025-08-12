@@ -3,6 +3,9 @@
 import React, { useState } from "react";
 import { motion, Variants } from "framer-motion";
 import Image from "next/image";
+import axios from "axios";
+
+const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 interface BenefitItem {
   icon: string;
@@ -44,12 +47,26 @@ const Newsletter: React.FC = () => {
 
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const response = await axios.post(
+        `${backendUrl}/contact/subscribe-newsletter`,
+        {
+          email,
+        }
+      );
 
-    setIsSubscribed(true);
-    setIsLoading(false);
-    setEmail("");
+      if (response.data.success) {
+        setIsSubscribed(true);
+      } else {
+        throw new Error(response.data.message || "Subscription failed");
+      }
+    } catch (error) {
+      console.error("Error subscribing to newsletter:", error);
+      alert("Failed to subscribe. Please try again later.");
+    } finally {
+      setIsLoading(false);
+      setEmail("");
+    }
   };
 
   const containerVariants = {
@@ -246,7 +263,9 @@ const Newsletter: React.FC = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     <div className="absolute bottom-4 left-4 text-white">
-                      <p className="font-bold text-sm">This Week&apos;s Focus</p>
+                      <p className="font-bold text-sm">
+                        This Week&apos;s Focus
+                      </p>
                       <p className="text-xs opacity-90">
                         Equipment Trends 2024
                       </p>

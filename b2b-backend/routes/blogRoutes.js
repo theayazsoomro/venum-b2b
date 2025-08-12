@@ -186,6 +186,7 @@ router.post("/", auth, validateBlog, async (req, res) => {
       content: req.body.content,
       excerpt: req.body.excerpt,
       image: req.body.image,
+      youtubeUrl: req.body.youtubeUrl,
       author: {
         name: req.body.author.name,
         avatar: req.body.author.avatar || "/default-avatar.jpg",
@@ -260,6 +261,7 @@ router.put("/:id", auth, validateBlog, async (req, res) => {
     blog.content = req.body.content;
     blog.excerpt = req.body.excerpt;
     blog.image = req.body.image;
+    blog.youtubeUrl = req.body.youtubeUrl;
     blog.author = {
       name: req.body.author.name,
       avatar: req.body.author.avatar || blog.author.avatar,

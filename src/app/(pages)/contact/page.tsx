@@ -6,6 +6,9 @@ import { useCart } from "@/context/CartContext";
 import Image from "next/image";
 import Link from "next/link";
 import ProductRadarChart from "@/components/ui/RadarChart";
+import axios from "axios";
+
+const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 interface UserInfo {
   id: string;
@@ -99,29 +102,69 @@ const ContactPage = () => {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
+      // Prepare the complete submission data
       const submissionData = {
-        ...contactForm,
-        userInfo,
-        items,
+        contactForm: {
+          subject: contactForm.subject,
+          message: contactForm.message,
+          priority: contactForm.priority,
+          category: contactForm.category,
+        },
+        userInfo: {
+          id: userInfo.id,
+          name: userInfo.name,
+          email: userInfo.email,
+          company: userInfo.company,
+          phone: userInfo.phone,
+          address: userInfo.address,
+          city: userInfo.city,
+          country: userInfo.country,
+          businessType: userInfo.businessType,
+        },
+        items: items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          imageUrl: item.imageUrl || "", // Ensure imageUrl is included
+        })),
         totalValue: total,
         timestamp: new Date().toISOString(),
       };
 
-      console.log("Contact form submitted:", submissionData);
-      setSubmitMessage("Thank you! Your message has been sent successfully.");
-      setContactForm({
-        subject: "",
-        message: "",
-        priority: "medium",
-        category: "general",
-      });
+      console.log("Submitting contact form with data:", submissionData);
+
+      // Send to backend API
+      const response = await axios.post(
+        `${backendUrl}/contact/send-contact-message`,
+        submissionData
+      );
+
+      if (response.data.success) {
+        setSubmitMessage(
+          "Thank you! Your message has been sent successfully. We'll get back to you soon."
+        );
+
+        // Reset the contact form (keep user info and cart items)
+        setContactForm({
+          subject: "",
+          message: "",
+          priority: "medium",
+          category: "general",
+        });
+      } else {
+        throw new Error(response.data.error || "Failed to send message");
+      }
     } catch (error) {
-      setSubmitMessage("Something went wrong. Please try again.");
+      console.error("Error submitting contact form:", error);
+
+      // Show user-friendly error message
+      const errorMessage = "Something went wrong. Please try again.";
+      setSubmitMessage(errorMessage);
     } finally {
       setIsSubmitting(false);
+
+      // Clear message after 5 seconds
       setTimeout(() => setSubmitMessage(""), 5000);
     }
   };
@@ -660,8 +703,8 @@ const ContactPage = () => {
           </div>
         </div>
         <div className="charts my-8">
-              <ProductRadarChart />
-            </div>
+          <ProductRadarChart />
+        </div>
       </div>
 
       {/* Edit Item Modal */}

@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
-import { useCart } from "@/context/CartContext";
 import Image from "next/image";
 import {
   Code,

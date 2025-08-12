@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import Image from "next/image";
-import axios, { AxiosError } from "axios";
+import axios from "axios";
 import { Product, BackendResponse } from "@/types/Products";
 import BlogManager from "@/components/admin/BlogManager";
 
@@ -65,9 +65,9 @@ const AdminDashboard = () => {
   const [filteredBlogs, setFilteredBlogs] = useState<Blog[]>([]);
   const [activeTab, setActiveTab] = useState<"products" | "blogs">("products");
   const [showModal, setShowModal] = useState(false);
-  const [showBlogModal, setShowBlogModal] = useState(false);
+  // const [showBlogModal, setShowBlogModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
+  // const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [blogSearchTerm, setBlogSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -487,78 +487,6 @@ const AdminDashboard = () => {
       throw new Error("Failed to delete product");
     }
   };
-
-  // Create new blog via API
-  // const createBlog = async (blogData: BlogFormData) => {
-  //   try {
-  //     const authAxios = createAuthAxios();
-  //     const response = await authAxios.post("/blogs", blogData);
-
-  //     if (response.data.status === "success") {
-  //       return response.data.data.blog;
-  //     } else {
-  //       throw new Error(response.data.message || "Failed to create blog");
-  //     }
-  //   } catch (error: unknown) {
-  //     console.error("Error creating blog:", error);
-  //     if (axios.isAxiosError(error)) {
-  //       if (error.response?.data?.message) {
-  //         throw new Error(error.response.data.message);
-  //       } else if (error.response?.data?.errors) {
-  //         throw new Error(error.response.data.errors.join(", "));
-  //       }
-  //     }
-  //     throw new Error("Failed to create blog");
-  //   }
-  // };
-
-  // Update blog via API
-  // const updateBlog = async (blogId: string, blogData: BlogFormData) => {
-  //   try {
-  //     const authAxios = createAuthAxios();
-  //     const response = await authAxios.put(`/blogs/${blogId}`, blogData);
-
-  //     if (response.data.status === "success") {
-  //       return response.data.data.blog;
-  //     } else {
-  //       throw new Error(response.data.message || "Failed to update blog");
-  //     }
-  //   } catch (error: unknown) {
-  //     console.error("Error updating blog:", error);
-  //     if (axios.isAxiosError(error)) {
-  //       if (error.response?.data?.message) {
-  //         throw new Error(error.response.data.message);
-  //       } else if (error.response?.data?.errors) {
-  //         throw new Error(error.response.data.errors.join(", "));
-  //       }
-  //     }
-  //     throw new Error("Failed to update blog");
-  //   }
-  // };
-
-  // Delete blog via API
-  // const deleteBlog = async (blogId: string) => {
-  //   try {
-  //     const authAxios = createAuthAxios();
-  //     const response = await authAxios.delete(`/blogs/${blogId}`);
-
-  //     if (response.data.status === "success") {
-  //       return true;
-  //     } else {
-  //       throw new Error(response.data.message || "Failed to delete blog");
-  //     }
-  //   } catch (error: unknown) {
-  //     console.error("Error deleting blog:", error);
-  //     if (axios.isAxiosError(error)) {
-  //       if (error.response?.data?.message) {
-  //         throw new Error(error.response.data.message);
-  //       } else if (error.response?.data?.errors) {
-  //         throw new Error(error.response.data.errors.join(", "));
-  //       }
-  //     }
-  //     throw new Error("Failed to delete blog");
-  //   }
-  // };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, FormEvent } from "react";
 import { motion, Variants } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, notFound } from "next/navigation";
 import axios from "axios";
 import { extractYouTubeVideoId, getYouTubeEmbedUrl } from "@/utils/youtube";
+import { UserRound } from "lucide-react";
 
 const Backend_Url = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -48,7 +49,7 @@ interface Comment {
     avatar: string;
   };
   content: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   createdAt: string;
   updatedAt: string;
 }
@@ -68,29 +69,30 @@ const SingleBlogPage: React.FC = () => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentFormData, setCommentFormData] = useState<CommentFormData>({
-    name: '',
-    email: '',
-    content: ''
+    name: "",
+    email: "",
+    content: "",
   });
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [email, setEmail] = useState<string>("");
 
   // Fetch blog post data
   useEffect(() => {
     const fetchBlogPost = async () => {
       try {
         setIsLoading(true);
-        
+
         // Fetch the specific blog post
         const response = await axios.get(`${Backend_Url}/blogs/${params.id}`);
-        
+
         if (response.data.status === "success") {
           setBlogPost(response.data.data.blog);
-          
+
           // Fetch related posts (other blogs from same category, excluding current)
           const relatedResponse = await axios.get(
             `${Backend_Url}/blogs?category=${response.data.data.blog.category}&limit=3`
           );
-          
+
           if (relatedResponse.data.status === "success") {
             const related = relatedResponse.data.data.blogs
               .filter((blog: BlogPost) => blog._id !== params.id)
@@ -119,13 +121,15 @@ const SingleBlogPage: React.FC = () => {
     const fetchComments = async () => {
       try {
         setCommentsLoading(true);
-        const response = await axios.get(`${Backend_Url}/comments/blog/${params.id}`);
-        
-        if (response.data.status === 'success') {
+        const response = await axios.get(
+          `${Backend_Url}/comments/blog/${params.id}`
+        );
+
+        if (response.data.status === "success") {
           setComments(response.data.data.comments || []);
         }
       } catch (error) {
-        console.error('Error fetching comments:', error);
+        console.error("Error fetching comments:", error);
       } finally {
         setCommentsLoading(false);
       }
@@ -153,34 +157,63 @@ const SingleBlogPage: React.FC = () => {
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!commentFormData.name.trim() || !commentFormData.email.trim() || !commentFormData.content.trim()) {
+
+    if (
+      !commentFormData.name.trim() ||
+      !commentFormData.email.trim() ||
+      !commentFormData.content.trim()
+    ) {
       return;
     }
 
     setIsSubmittingComment(true);
-    
+
     try {
       const response = await axios.post(`${Backend_Url}/comments`, {
         blogId: params.id,
         author: {
           name: commentFormData.name,
-          email: commentFormData.email
+          email: commentFormData.email,
         },
-        content: commentFormData.content
+        content: commentFormData.content,
       });
-      
-      if (response.data.status === 'success') {
+
+      if (response.data.status === "success") {
         // Add the new comment to the list
         setComments([response.data.data.comment, ...comments]);
         // Reset form
-        setCommentFormData({ name: '', email: '', content: '' });
+        setCommentFormData({ name: "", email: "", content: "" });
       }
     } catch (error) {
-      console.error('Error submitting comment:', error);
-      alert('Failed to submit comment. Please try again.');
+      console.error("Error submitting comment:", error);
+      alert("Failed to submit comment. Please try again.");
     } finally {
       setIsSubmittingComment(false);
+    }
+  };
+
+  // Handle newsletter subscription
+  const handleSubscribeSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+    try {
+      const response = await axios.post(
+        `${Backend_Url}/contact/subscribe-newsletter`,
+        { email }
+      );
+
+      if (response.data.success) {
+        alert("Thank you for subscribing to our newsletter!");
+        setEmail("");
+      } else {
+        alert("Failed to subscribe. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error subscribing to newsletter:", error);
+      alert("Something went wrong. Please try again.");
     }
   };
 
@@ -238,9 +271,7 @@ const SingleBlogPage: React.FC = () => {
                 {blogPost.category}
               </span>
               <span className="text-blue-200">•</span>
-              <span className="text-blue-200">
-                {blogPost.readTime}
-              </span>
+              <span className="text-blue-200">{blogPost.readTime}</span>
               <span className="text-blue-200">•</span>
               <span className="text-blue-200">
                 {new Date(blogPost.createdAt).toLocaleDateString("en-US", {
@@ -283,9 +314,7 @@ const SingleBlogPage: React.FC = () => {
                 <h3 className="font-bold text-gray-900">
                   {blogPost.author.name}
                 </h3>
-                <p className="text-blue-600 text-sm font-medium">
-                  Author
-                </p>
+                <p className="text-blue-600 text-sm font-medium">Author</p>
                 <p className="text-gray-600 text-sm mt-1">
                   {blogPost.author.bio || "Blog contributor"}
                 </p>
@@ -324,23 +353,31 @@ const SingleBlogPage: React.FC = () => {
             </div>
 
             {/* YouTube Video */}
-            {blogPost.youtubeUrl && extractYouTubeVideoId(blogPost.youtubeUrl) && (
-              <motion.div 
-                className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 mb-8"
-                variants={itemVariants}
-              >
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Related Video</h3>
-                <div className="relative w-full" style={{ paddingBottom: '56.25%' /* 16:9 aspect ratio */ }}>
-                  <iframe
-                    src={getYouTubeEmbedUrl(extractYouTubeVideoId(blogPost.youtubeUrl)!)}
-                    title="YouTube video player"
-                    className="absolute top-0 left-0 w-full h-full rounded-lg border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  />
-                </div>
-              </motion.div>
-            )}
+            {blogPost.youtubeUrl &&
+              extractYouTubeVideoId(blogPost.youtubeUrl) && (
+                <motion.div
+                  className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 mb-8"
+                  variants={itemVariants}
+                >
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">
+                    Related Video
+                  </h3>
+                  <div
+                    className="relative w-full"
+                    style={{ paddingBottom: "56.25%" /* 16:9 aspect ratio */ }}
+                  >
+                    <iframe
+                      src={getYouTubeEmbedUrl(
+                        extractYouTubeVideoId(blogPost.youtubeUrl)!
+                      )}
+                      title="YouTube video player"
+                      className="absolute top-0 left-0 w-full h-full rounded-lg border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                  </div>
+                </motion.div>
+              )}
 
             {/* Tags */}
             <motion.div className="mb-8" variants={itemVariants}>
@@ -378,7 +415,12 @@ const SingleBlogPage: React.FC = () => {
                       type="text"
                       required
                       value={commentFormData.name}
-                      onChange={(e) => setCommentFormData({ ...commentFormData, name: e.target.value })}
+                      onChange={(e) =>
+                        setCommentFormData({
+                          ...commentFormData,
+                          name: e.target.value,
+                        })
+                      }
                       className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Your name"
                     />
@@ -391,7 +433,12 @@ const SingleBlogPage: React.FC = () => {
                       type="email"
                       required
                       value={commentFormData.email}
-                      onChange={(e) => setCommentFormData({ ...commentFormData, email: e.target.value })}
+                      onChange={(e) =>
+                        setCommentFormData({
+                          ...commentFormData,
+                          email: e.target.value,
+                        })
+                      }
                       className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="your.email@example.com"
                     />
@@ -404,7 +451,12 @@ const SingleBlogPage: React.FC = () => {
                   <textarea
                     required
                     value={commentFormData.content}
-                    onChange={(e) => setCommentFormData({ ...commentFormData, content: e.target.value })}
+                    onChange={(e) =>
+                      setCommentFormData({
+                        ...commentFormData,
+                        content: e.target.value,
+                      })
+                    }
                     placeholder="Share your thoughts..."
                     className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                     rows={4}
@@ -421,7 +473,7 @@ const SingleBlogPage: React.FC = () => {
                   whileHover={{ scale: isSubmittingComment ? 1 : 1.02 }}
                   whileTap={{ scale: isSubmittingComment ? 1 : 0.98 }}
                 >
-                  {isSubmittingComment ? 'Posting...' : 'Post Comment'}
+                  {isSubmittingComment ? "Posting..." : "Post Comment"}
                 </motion.button>
               </form>
 
@@ -444,31 +496,26 @@ const SingleBlogPage: React.FC = () => {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5 }}
                     >
-                      <Image
-                        src={comment.author.avatar}
-                        alt={comment.author.name}
-                        width={40}
-                        height={40}
-                        className="rounded-full"
-                        onError={(e) => {
-                          e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author.name)}&background=3B82F6&color=fff&size=40`;
-                        }}
-                      />
+                      <UserRound className="text-black w-8 h-8" />
+
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
                           <h4 className="font-semibold text-gray-900">
                             {comment.author.name}
                           </h4>
                           <span className="text-gray-500 text-sm">
-                            {new Date(comment.createdAt).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+                            {new Date(comment.createdAt).toLocaleDateString(
+                              "en-US",
+                              {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )}
                           </span>
-                          {comment.status === 'pending' && (
+                          {comment.status === "pending" && (
                             <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
                               Pending
                             </span>
@@ -495,6 +542,8 @@ const SingleBlogPage: React.FC = () => {
               <div className="space-y-3">
                 <input
                   type="email"
+                  onChange={(e) => setEmail(e.target.value)}
+                  value={email || ""}
                   placeholder="Your email"
                   className="w-full px-4 py-2 rounded-lg text-gray-100 focus:outline-none border-1 border-white/30 bg-blue-700 placeholder-gray-200 "
                 />
@@ -502,6 +551,7 @@ const SingleBlogPage: React.FC = () => {
                   className="w-full bg-white text-blue-600 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
+                  onClick={handleSubscribeSubmit}
                 >
                   Subscribe
                 </motion.button>
